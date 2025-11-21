@@ -36,7 +36,8 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
         }
         
         // Chama API do OneSignal internamente
-        $ch = curl_init(get_base_url() . '/api/onesignal/send.php');
+        $apiUrl = get_base_url() . '/api/onesignal/send.php';
+        $ch = curl_init($apiUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
@@ -48,11 +49,25 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json'
         ]);
-        curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id());
+        
+        // Passa cookie de sessão se disponível
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_COOKIE[session_name()])) {
+            curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . $_COOKIE[session_name()]);
+        }
+        
+        // Para requisições internas, também passa variáveis de sessão via header
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
+        
+        if ($curlError) {
+            throw new Exception('Erro cURL: ' . $curlError);
+        }
         
         if ($httpCode === 200) {
             $data = json_decode($response, true);
@@ -101,7 +116,8 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
             $url = $basePath . '/' . ltrim($url, '/');
         }
         
-        $ch = curl_init(get_base_url() . '/api/onesignal/send.php');
+        $apiUrl = get_base_url() . '/api/onesignal/send.php';
+        $ch = curl_init($apiUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
@@ -113,11 +129,25 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json'
         ]);
-        curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id());
+        
+        // Passa cookie de sessão se disponível
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_COOKIE[session_name()])) {
+            curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . $_COOKIE[session_name()]);
+        }
+        
+        // Para requisições internas, também passa variáveis de sessão via header
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
+        
+        if ($curlError) {
+            throw new Exception('Erro cURL: ' . $curlError);
+        }
         
         if ($httpCode === 200) {
             $data = json_decode($response, true);

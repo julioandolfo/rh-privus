@@ -67,6 +67,11 @@ self.addEventListener('fetch', (event) => {
     return; // Não faz cache, deixa o browser lidar normalmente
   }
   
+  // Ignora requisições POST, PUT, DELETE, PATCH (não podem ser cacheadas)
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return fetch(request);
+  }
+  
   // Ignora requisições de API e OneSignal (não devem ser cacheadas)
   if (url.pathname.includes('/api/') || url.pathname.includes('onesignal.com')) {
     return fetch(request);

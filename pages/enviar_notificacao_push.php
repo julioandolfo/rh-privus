@@ -21,7 +21,7 @@ if (!in_array($_SESSION['usuario']['role'], ['ADMIN', 'RH'])) {
 
 $pdo = getDB();
 $usuario = $_SESSION['usuario'];
-$success = '';
+$success = $_GET['success'] ?? '';
 $error = '';
 
 // Verifica se a tabela onesignal_subscriptions existe
@@ -55,8 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_notificacao'])
             
             if ($resultado['success']) {
                 $success = "Notificação enviada com sucesso para {$resultado['enviadas']} dispositivo(s)!";
+                // Recarrega a página após 1 segundo para atualizar a lista
+                header('Location: ' . $_SERVER['PHP_SELF'] . '?success=' . urlencode($success));
+                exit;
             } else {
-                $error = $resultado['message'];
+                $error = $resultado['message'] ?? 'Erro desconhecido ao enviar notificação';
             }
         } catch (Exception $e) {
             $error = 'Erro ao enviar notificação: ' . $e->getMessage();
@@ -73,7 +76,7 @@ $where = [];
 $params = [];
 
 if ($filtro_nome) {
-    $where[] = "(u.nome LIKE ? OR c.nome LIKE ?)";
+    $where[] = "(u.nome LIKE ? OR c.nome_completo LIKE ?)";
     $params[] = "%{$filtro_nome}%";
     $params[] = "%{$filtro_nome}%";
 }
@@ -106,7 +109,7 @@ if (empty($error)) {
             MAX(u.nome) as usuario_nome,
             MAX(u.email) as usuario_email,
             MAX(u.role) as usuario_role,
-            MAX(c.nome) as colaborador_nome,
+            MAX(c.nome_completo) as colaborador_nome,
             COUNT(os.id) as total_dispositivos
         FROM onesignal_subscriptions os
         LEFT JOIN usuarios u ON os.usuario_id = u.id
@@ -298,7 +301,7 @@ include __DIR__ . '/../includes/header.php';
                 
                 <!--begin::Table-->
                 <div class="table-responsive">
-                    <table class="table table-row-bordered table-row-dashed gy-4 align-middle datatable">
+                    <table id="kt_notificacoes_table" class="table table-row-bordered table-row-dashed gy-4 align-middle">
                         <thead>
                             <tr class="fw-bold fs-6 text-gray-800">
                                 <th>Usuário</th>
@@ -324,41 +327,45 @@ include __DIR__ . '/../includes/header.php';
                                             <div class="d-flex align-items-center">
                                                 <div class="symbol symbol-45px me-5">
                                                     <div class="symbol-label fs-3 fw-semibold bg-primary text-white">
-                                                        <?= strtoupper(substr($sub['usuario_nome'] ?: $sub['colaborador_nome'] ?: 'U', 0, 1)) ?>
+                                                        <?= strtoupper(substr(($sub['usuario_nome'] ?? '') ?: ($sub['colaborador_nome'] ?? '') ?: 'U', 0, 1)) ?>
                                                     </div>
                                                 </div>
                                                 <div class="d-flex flex-column">
-                                                    <span class="text-gray-800 fw-bold"><?= htmlspecialchars($sub['usuario_nome'] ?: $sub['colaborador_nome'] ?: 'N/A') ?></span>
+                                                    <span class="text-gray-800 fw-bold"><?= htmlspecialchars(($sub['usuario_nome'] ?? '') ?: ($sub['colaborador_nome'] ?? '') ?: 'N/A') ?></span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><?= htmlspecialchars($sub['usuario_email'] ?: '-') ?></td>
+                                        <td><?= htmlspecialchars($sub['usuario_email'] ?? '-') ?></td>
                                         <td>
-                                            <span class="badge badge-<?= $sub['usuario_role'] === 'ADMIN' ? 'danger' : ($sub['usuario_role'] === 'RH' ? 'primary' : 'success') ?>">
-                                                <?= htmlspecialchars($sub['usuario_role'] ?: 'Colaborador') ?>
+                                            <span class="badge badge-<?= ($sub['usuario_role'] ?? '') === 'ADMIN' ? 'danger' : (($sub['usuario_role'] ?? '') === 'RH' ? 'primary' : 'success') ?>">
+                                                <?= htmlspecialchars($sub['usuario_role'] ?? 'Colaborador') ?>
                                             </span>
                                         </td>
                                         <td>
                                             <?php 
-                                            $deviceTypes = explode(',', $sub['device_types'] ?? 'web');
-                                            $uniqueDevices = array_unique($deviceTypes);
+                                            $deviceTypesStr = $sub['device_types'] ?? 'web';
+                                            $deviceTypes = !empty($deviceTypesStr) ? explode(',', $deviceTypesStr) : ['web'];
+                                            $uniqueDevices = array_unique(array_filter(array_map('trim', $deviceTypes)));
+                                            if (empty($uniqueDevices)) {
+                                                $uniqueDevices = ['web'];
+                                            }
                                             foreach ($uniqueDevices as $dt): 
                                             ?>
                                                 <span class="badge badge-info me-1">
-                                                    <?= ucfirst(trim($dt) ?: 'web') ?>
+                                                    <?= ucfirst($dt ?: 'web') ?>
                                                 </span>
                                             <?php endforeach; ?>
-                                            <span class="text-muted">(<?= $sub['total_dispositivos'] ?>)</span>
+                                            <span class="text-muted">(<?= intval($sub['total_dispositivos'] ?? 0) ?>)</span>
                                         </td>
                                         <td>
-                                            <span class="text-muted" style="font-size: 11px;" title="<?= htmlspecialchars($sub['player_ids']) ?>">
-                                                <?= $sub['total_dispositivos'] ?> dispositivo(s)
+                                            <span class="text-muted" style="font-size: 11px;" title="<?= htmlspecialchars($sub['player_ids'] ?? '') ?>">
+                                                <?= intval($sub['total_dispositivos'] ?? 0) ?> dispositivo(s)
                                             </span>
                                         </td>
-                                        <td><?= date('d/m/Y H:i', strtotime($sub['created_at'])) ?></td>
+                                        <td><?= !empty($sub['created_at']) ? date('d/m/Y H:i', strtotime($sub['created_at'])) : '-' ?></td>
                                         <td class="text-end">
                                             <button type="button" class="btn btn-sm btn-primary" 
-                                                    onclick="enviarParaUsuario(<?= $sub['usuario_id'] ?: 'null' ?>, <?= $sub['colaborador_id'] ?: 'null' ?>, '<?= htmlspecialchars(addslashes($sub['usuario_nome'] ?: $sub['colaborador_nome'] ?: 'Usuário')) ?>')">
+                                                    onclick="enviarParaUsuario(<?= $sub['usuario_id'] ?? 'null' ?>, <?= $sub['colaborador_id'] ?? 'null' ?>, '<?= htmlspecialchars(addslashes(($sub['usuario_nome'] ?? '') ?: ($sub['colaborador_nome'] ?? '') ?: 'Usuário')) ?>')">
                                                 <i class="ki-duotone ki-notification-status fs-5">
                                                     <span class="path1"></span>
                                                     <span class="path2"></span>
@@ -461,4 +468,68 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+
+<script>
+// Inicializa DataTables após jQuery estar carregado (no footer)
+(function() {
+    var dataTableInstance = null;
+    
+    function initDataTable() {
+        if (typeof jQuery !== 'undefined' && jQuery('#kt_notificacoes_table').length) {
+            // Destrói instância anterior se existir
+            if (dataTableInstance) {
+                try {
+                    dataTableInstance.destroy();
+                } catch (e) {
+                    // Ignora erros ao destruir
+                }
+                dataTableInstance = null;
+            }
+            
+            // Verifica se já foi inicializado
+            if (!jQuery('#kt_notificacoes_table').hasClass('dataTable')) {
+                dataTableInstance = jQuery('#kt_notificacoes_table').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+                    },
+                    pageLength: 25,
+                    order: [[5, 'desc']], // Ordena por data de registro
+                    responsive: true,
+                    columnDefs: [
+                        { orderable: false, targets: 6 } // Coluna de ações não ordenável
+                    ],
+                    dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
+                });
+            }
+        } else if (typeof jQuery === 'undefined') {
+            // Se jQuery ainda não estiver disponível, tenta novamente
+            setTimeout(initDataTable, 50);
+        }
+    }
+    
+    // Aguarda jQuery estar disponível
+    if (typeof jQuery !== 'undefined') {
+        jQuery(document).ready(function() {
+            // Pequeno delay para garantir que o DOM está completamente renderizado
+            setTimeout(initDataTable, 100);
+        });
+    } else {
+        // Tenta até jQuery estar disponível (máximo 5 segundos)
+        var attempts = 0;
+        var checkJQuery = setInterval(function() {
+            attempts++;
+            if (typeof jQuery !== 'undefined') {
+                clearInterval(checkJQuery);
+                jQuery(document).ready(function() {
+                    setTimeout(initDataTable, 100);
+                });
+            } else if (attempts > 100) {
+                // Timeout após 5 segundos (50ms * 100)
+                clearInterval(checkJQuery);
+                console.error('jQuery não foi carregado após 5 segundos');
+            }
+        }, 50);
+    }
+})();
+</script>
 
