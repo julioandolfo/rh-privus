@@ -133,6 +133,15 @@ const OneSignalInit = {
             // Inicializa OneSignal
             window.OneSignal = window.OneSignal || [];
             const self = this;
+            
+            // Usa configuração global se disponível (definida no header)
+            const globalConfig = window.OneSignalConfig || {};
+            const swPath = globalConfig.serviceWorkerPath || (basePathForSW + '/OneSignalSDKWorker.js');
+            const swScope = globalConfig.serviceWorkerParam?.scope || (basePathForSW + '/');
+            
+            console.log('🔧 Usando Service Worker Path:', swPath);
+            console.log('🔧 Usando Service Worker Scope:', swScope);
+            
             OneSignal.push(function() {
                 const initConfig = {
                     appId: self.appId,
@@ -143,14 +152,14 @@ const OneSignalInit = {
                     allowLocalhostAsSecureOrigin: true, // Para testes em localhost
                     autoResubscribe: true,
                     serviceWorkerParam: {
-                        scope: basePathForSW + '/',
-                        path: basePathForSW + '/OneSignalSDKWorker.js'
+                        scope: swScope,
+                        path: swPath
                     },
-                    serviceWorkerPath: basePathForSW + '/OneSignalSDKWorker.js',
+                    serviceWorkerPath: swPath,
                     path: basePathForSW + '/'
                 };
                 
-                console.log('🔧 Configuração OneSignal:', initConfig);
+                console.log('🔧 Configuração OneSignal completa:', JSON.stringify(initConfig, null, 2));
                 
                 OneSignal.init(initConfig);
                 

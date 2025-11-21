@@ -57,6 +57,20 @@ $usuario = $_SESSION['usuario'];
     }
     ?>
     <meta name="onesignal-service-worker-path" content="<?= $basePath ?>/OneSignalSDKWorker.js">
+    <!-- Configura OneSignal ANTES do SDK carregar -->
+    <script>
+        window.OneSignal = window.OneSignal || [];
+        window.OneSignal.push(function() {
+            // Esta configuração será aplicada quando o SDK carregar
+        });
+        // Define configuração global antes do SDK carregar
+        window.OneSignalConfig = {
+            serviceWorkerPath: '<?= $basePath ?>/OneSignalSDKWorker.js',
+            serviceWorkerParam: {
+                scope: '<?= $basePath ?>/'
+            }
+        };
+    </script>
     <!--end::OneSignal Service Worker Path-->
     
     <!--begin::Header CSS Fix-->
