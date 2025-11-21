@@ -31,8 +31,17 @@ $usuario_id = $input['usuario_id'] ?? null;
 $colaborador_id = $input['colaborador_id'] ?? null;
 $titulo = $input['titulo'] ?? 'Notificação';
 $mensagem = $input['mensagem'] ?? '';
-$url = $input['url'] ?? '/rh-privus/pages/dashboard.php';
-$icone = $input['icone'] ?? '/rh-privus/assets/media/logos/favicon.png';
+// Detecta base path automaticamente
+$basePath = '/rh'; // Padrão produção
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+if (strpos($requestUri, '/rh-privus') !== false) {
+    $basePath = '/rh-privus';
+} elseif (strpos($requestUri, '/rh/') !== false || preg_match('#^/rh[^a-z]#', $requestUri)) {
+    $basePath = '/rh';
+}
+
+$url = $input['url'] ?? $basePath . '/pages/dashboard.php';
+$icone = $input['icone'] ?? $basePath . '/assets/media/logos/favicon.png';
 
 if (empty($mensagem)) {
     echo json_encode(['success' => false, 'message' => 'Mensagem é obrigatória']);
@@ -100,7 +109,7 @@ try {
         'contents' => ['pt' => $mensagem],
         'url' => $url,
         'chrome_web_icon' => $baseUrl . $icone,
-        'chrome_web_badge' => $baseUrl . '/rh-privus/assets/media/logos/favicon.png'
+        'chrome_web_badge' => $baseUrl . $basePath . '/assets/media/logos/favicon.png'
     ];
     
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
