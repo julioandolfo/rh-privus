@@ -131,15 +131,23 @@ try {
     $curlError = curl_error($ch);
     curl_close($ch);
     
+    // Log detalhado para debug
+    error_log("OneSignal API - HTTP Code: {$httpCode}");
+    error_log("OneSignal API - Player IDs: " . implode(', ', $subscriptions));
+    error_log("OneSignal API - Response: " . substr($response, 0, 1000));
+    
     if ($curlError) {
+        error_log("OneSignal API - cURL Error: {$curlError}");
         throw new Exception('Erro cURL: ' . $curlError);
     }
     
     if ($httpCode === 200 || $httpCode === 201) {
         $result = json_decode($response, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log("OneSignal API - JSON Decode Error: " . json_last_error_msg());
             throw new Exception('Erro ao decodificar resposta do OneSignal: ' . json_last_error_msg());
         }
+        error_log("OneSignal API - Sucesso! OneSignal ID: " . ($result['id'] ?? 'N/A'));
         echo json_encode([
             'success' => true,
             'enviadas' => count($subscriptions),
@@ -154,6 +162,8 @@ try {
         } elseif (isset($error['message'])) {
             $errorMessage = $error['message'];
         }
+        error_log("OneSignal API - Erro: {$errorMessage} (HTTP {$httpCode})");
+        error_log("OneSignal API - Error Response: " . print_r($error, true));
         throw new Exception($errorMessage . ' (HTTP ' . $httpCode . ')');
     }
     

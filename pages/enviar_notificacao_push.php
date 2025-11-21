@@ -472,10 +472,11 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 
 <script>
-// Inicializa DataTables após jQuery estar carregado (no footer)
-(function() {
+// Aguarda um pouco para garantir que o footer terminou de executar
+setTimeout(function() {
     'use strict';
     
+    // Inicializa DataTables após jQuery estar carregado (no footer)
     var dataTableInstance = null;
     var initialized = false;
     
@@ -485,10 +486,16 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
             return false;
         }
         
-        // Usa jQuery ou $ (se disponível)
-        var $ = window.jQuery || window.$;
+        // Usa jQuery ou $ (se disponível) - sempre dentro de uma variável local
+        var jQuery = window.jQuery || window.$;
+        if (!jQuery) {
+            return false;
+        }
         
-        if (!$ || !$('#kt_notificacoes_table').length) {
+        // Usa jQuery ao invés de $ para evitar conflitos
+        var $ = jQuery;
+        
+        if (!$ || typeof $.fn === 'undefined' || !$('#kt_notificacoes_table').length) {
             return false;
         }
         
@@ -555,8 +562,15 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
     
     // Aguarda jQuery e DOM estarem prontos
     waitForJQuery(function() {
-        var $ = window.jQuery || window.$;
-        if ($ && typeof $.fn.DataTable !== 'undefined') {
+        var jQuery = window.jQuery || window.$;
+        if (!jQuery) {
+            console.error('jQuery não disponível após waitForJQuery');
+            return;
+        }
+        
+        var $ = jQuery; // Variável local para evitar conflitos
+        
+        if ($ && typeof $.fn !== 'undefined' && typeof $.fn.DataTable !== 'undefined') {
             $(document).ready(function() {
                 // Pequeno delay para garantir que o DOM está completamente renderizado
                 setTimeout(function() {
@@ -567,8 +581,12 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
             // Se DataTables não estiver disponível, tenta novamente
             setTimeout(function() {
                 waitForJQuery(function() {
-                    var $ = window.jQuery || window.$;
-                    if ($ && typeof $.fn.DataTable !== 'undefined') {
+                    var jQuery = window.jQuery || window.$;
+                    if (!jQuery) {
+                        return;
+                    }
+                    var $ = jQuery;
+                    if ($ && typeof $.fn !== 'undefined' && typeof $.fn.DataTable !== 'undefined') {
                         $(document).ready(function() {
                             setTimeout(initDataTable, 200);
                         });
@@ -577,6 +595,6 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
             }, 500);
         }
     });
-})();
+}, 300); // Delay de 300ms para garantir que footer terminou
 </script>
 

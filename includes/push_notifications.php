@@ -65,15 +65,22 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
         $curlError = curl_error($ch);
         curl_close($ch);
         
+        // Log detalhado para debug
+        error_log("enviar_push_colaborador - HTTP Code: {$httpCode}");
+        error_log("enviar_push_colaborador - Response: " . substr($response, 0, 500));
+        
         if ($curlError) {
+            error_log("enviar_push_colaborador - cURL Error: {$curlError}");
             throw new Exception('Erro cURL: ' . $curlError);
         }
         
         if ($httpCode === 200 || $httpCode === 201) {
             $data = json_decode($response, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log("enviar_push_colaborador - JSON Decode Error: " . json_last_error_msg());
                 throw new Exception('Erro ao decodificar resposta: ' . json_last_error_msg());
             }
+            error_log("enviar_push_colaborador - Sucesso! Enviadas: " . ($data['enviadas'] ?? 0));
             return [
                 'success' => true,
                 'enviadas' => $data['enviadas'] ?? 0,
@@ -87,6 +94,7 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
             } elseif (isset($error['errors']) && is_array($error['errors']) && !empty($error['errors'])) {
                 $errorMessage = is_array($error['errors'][0]) ? ($error['errors'][0]['message'] ?? $errorMessage) : $error['errors'][0];
             }
+            error_log("enviar_push_colaborador - Erro: {$errorMessage} (HTTP {$httpCode})");
             return [
                 'success' => false,
                 'enviadas' => 0,
@@ -95,6 +103,7 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
         }
         
     } catch (Exception $e) {
+        error_log("enviar_push_colaborador - Exceção: " . $e->getMessage());
         return [
             'success' => false,
             'enviadas' => 0,
@@ -154,15 +163,22 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
         $curlError = curl_error($ch);
         curl_close($ch);
         
+        // Log detalhado para debug
+        error_log("enviar_push_usuario - HTTP Code: {$httpCode}");
+        error_log("enviar_push_usuario - Response: " . substr($response, 0, 500));
+        
         if ($curlError) {
+            error_log("enviar_push_usuario - cURL Error: {$curlError}");
             throw new Exception('Erro cURL: ' . $curlError);
         }
         
         if ($httpCode === 200 || $httpCode === 201) {
             $data = json_decode($response, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
+                error_log("enviar_push_usuario - JSON Decode Error: " . json_last_error_msg());
                 throw new Exception('Erro ao decodificar resposta: ' . json_last_error_msg());
             }
+            error_log("enviar_push_usuario - Sucesso! Enviadas: " . ($data['enviadas'] ?? 0));
             return [
                 'success' => true,
                 'enviadas' => $data['enviadas'] ?? 0,
@@ -176,6 +192,7 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
             } elseif (isset($error['errors']) && is_array($error['errors']) && !empty($error['errors'])) {
                 $errorMessage = is_array($error['errors'][0]) ? ($error['errors'][0]['message'] ?? $errorMessage) : $error['errors'][0];
             }
+            error_log("enviar_push_usuario - Erro: {$errorMessage} (HTTP {$httpCode})");
             return [
                 'success' => false,
                 'enviadas' => 0,
@@ -184,6 +201,7 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
         }
         
     } catch (Exception $e) {
+        error_log("enviar_push_usuario - Exceção: " . $e->getMessage());
         return [
             'success' => false,
             'enviadas' => 0,
