@@ -73,19 +73,43 @@ const OneSignalInit = {
             
             // Detecta base path para Service Worker
             const pathForSW = window.location.pathname;
+            const hostname = window.location.hostname;
             let basePathForSW = '/rh'; // Padrão produção
             
+            // Detecta pelo caminho primeiro
             if (pathForSW.includes('/rh-privus/') || pathForSW.startsWith('/rh-privus')) {
                 basePathForSW = '/rh-privus';
-            } else if (pathForSW.includes('/rh/') || pathForSW.match(/^\/rh[^a-z]/)) {
-                basePathForSW = '/rh';
+            } else if (pathForSW.includes('/rh/') || pathForSW.startsWith('/rh')) {
+                // Verifica se não é /rh-privus
+                if (!pathForSW.includes('/rh-privus')) {
+                    basePathForSW = '/rh';
+                }
             } else {
-                // Fallback pelo hostname
-                const hostname = window.location.hostname;
+                // Fallback: detecta pelo hostname ou script src
                 if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('local')) {
                     basePathForSW = '/rh-privus';
+                } else {
+                    // Produção: tenta detectar pelo caminho do script atual
+                    const scripts = document.getElementsByTagName('script');
+                    for (let script of scripts) {
+                        if (script.src && script.src.includes('/rh/')) {
+                            basePathForSW = '/rh';
+                            break;
+                        } else if (script.src && script.src.includes('/rh-privus/')) {
+                            basePathForSW = '/rh-privus';
+                            break;
+                        }
+                    }
+                    // Se ainda não detectou e está em produção, assume /rh
+                    if (basePathForSW === '/rh' && !hostname.includes('localhost')) {
+                        // Já está correto (/rh)
+                    }
                 }
             }
+            
+            console.log('🔧 Base path detectado para Service Worker:', basePathForSW);
+            console.log('🔧 Path atual:', pathForSW);
+            console.log('🔧 Hostname:', hostname);
             
             // Inicializa OneSignal
             window.OneSignal = window.OneSignal || [];
@@ -102,7 +126,11 @@ const OneSignalInit = {
                     serviceWorkerParam: {
                         scope: basePathForSW + '/'
                     },
-                    serviceWorkerPath: basePathForSW + '/OneSignalSDKWorker.js'
+                    serviceWorkerPath: basePathForSW + '/OneSignalSDKWorker.js',
+                    // Log para debug
+                    onInit: function() {
+                        console.log('✅ OneSignal inicializado com Service Worker em:', basePathForSW + '/OneSignalSDKWorker.js');
+                    }
                 });
                 
                 // Registra quando usuário se inscreve
