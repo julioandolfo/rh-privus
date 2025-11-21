@@ -1,7 +1,22 @@
 // Service Worker - RH Privus PWA
 // OneSignal SDK será carregado automaticamente via OneSignalSDKWorker.js
 const CACHE_NAME = 'rh-privus-v1';
-const BASE_PATH = '/rh-privus';
+
+// Detecta BASE_PATH automaticamente
+// Funciona tanto em /rh-privus/ (localhost) quanto /rh/ (produção)
+let BASE_PATH = '/rh'; // Padrão para produção
+
+try {
+    const swPath = self.location.pathname;
+    if (swPath.includes('/rh-privus')) {
+        BASE_PATH = '/rh-privus';
+    } else if (swPath.includes('/rh/') || swPath.startsWith('/rh')) {
+        BASE_PATH = '/rh';
+    }
+} catch (e) {
+    // Fallback para /rh se não conseguir detectar
+    BASE_PATH = '/rh';
+}
 
 const urlsToCache = [
   BASE_PATH + '/',

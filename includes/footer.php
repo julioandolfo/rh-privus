@@ -30,6 +30,10 @@
     <script src="../assets/js/onesignal-init.js"></script>
     <!--end::OneSignal SDK-->
     
+    <!--begin::PWA Service Worker-->
+    <script src="../assets/js/pwa-service-worker.js"></script>
+    <!--end::PWA Service Worker-->
+    
     <!--begin::PWA Install Prompt-->
     <script src="../assets/js/pwa-install-prompt.js"></script>
     <!--end::PWA Install Prompt-->

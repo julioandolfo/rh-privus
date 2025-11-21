@@ -14,20 +14,33 @@ const OneSignalInit = {
         }
         
         // Detecta base path automaticamente
-        // Se está em /rh-privus/pages/, usa ../api
-        // Se está em /rh-privus/, usa /rh-privus/api
+        // Funciona tanto em /rh-privus/ (localhost) quanto /rh/ (produção)
         const path = window.location.pathname;
         let apiPath;
+        let basePath = '';
         
+        // Detecta o caminho base
+        if (path.includes('/rh-privus/') || path.startsWith('/rh-privus')) {
+            basePath = '/rh-privus';
+        } else if (path.includes('/rh/') || path.match(/^\/rh[^a-z]/)) {
+            basePath = '/rh';
+        } else {
+            // Fallback: detecta pelo hostname
+            const hostname = window.location.hostname;
+            if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('local')) {
+                basePath = '/rh-privus';
+            } else {
+                basePath = '/rh';
+            }
+        }
+        
+        // Monta o caminho da API
         if (path.includes('/pages/')) {
             // Está em uma página dentro de pages/
             apiPath = '../api/onesignal/config.php';
-        } else if (path.includes('/rh-privus')) {
-            // Está na raiz ou outra subpasta
-            apiPath = '/rh-privus/api/onesignal/config.php';
         } else {
-            // Está na raiz do servidor
-            apiPath = '/api/onesignal/config.php';
+            // Está na raiz ou outra subpasta
+            apiPath = basePath + '/api/onesignal/config.php';
         }
         
         // Busca configurações do servidor
@@ -60,9 +73,18 @@ const OneSignalInit = {
             
             // Detecta base path para Service Worker
             const pathForSW = window.location.pathname;
-            let basePathForSW = '';
-            if (pathForSW.includes('/rh-privus')) {
+            let basePathForSW = '/rh'; // Padrão produção
+            
+            if (pathForSW.includes('/rh-privus/') || pathForSW.startsWith('/rh-privus')) {
                 basePathForSW = '/rh-privus';
+            } else if (pathForSW.includes('/rh/') || pathForSW.match(/^\/rh[^a-z]/)) {
+                basePathForSW = '/rh';
+            } else {
+                // Fallback pelo hostname
+                const hostname = window.location.hostname;
+                if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('local')) {
+                    basePathForSW = '/rh-privus';
+                }
             }
             
             // Inicializa OneSignal
@@ -118,13 +140,26 @@ const OneSignalInit = {
             // Detecta base path para subscribe
             const path = window.location.pathname;
             let subscribePath;
+            let basePathSubscribe = '/rh'; // Padrão produção
             
+            // Detecta o caminho base
+            if (path.includes('/rh-privus/') || path.startsWith('/rh-privus')) {
+                basePathSubscribe = '/rh-privus';
+            } else if (path.includes('/rh/') || path.match(/^\/rh[^a-z]/)) {
+                basePathSubscribe = '/rh';
+            } else {
+                // Fallback pelo hostname
+                const hostname = window.location.hostname;
+                if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('local')) {
+                    basePathSubscribe = '/rh-privus';
+                }
+            }
+            
+            // Monta o caminho
             if (path.includes('/pages/')) {
                 subscribePath = '../api/onesignal/subscribe.php';
-            } else if (path.includes('/rh-privus')) {
-                subscribePath = '/rh-privus/api/onesignal/subscribe.php';
             } else {
-                subscribePath = '/api/onesignal/subscribe.php';
+                subscribePath = basePathSubscribe + '/api/onesignal/subscribe.php';
             }
             
             console.log('Registrando subscription em:', subscribePath);

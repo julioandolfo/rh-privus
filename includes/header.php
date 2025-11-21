@@ -37,7 +37,7 @@ $usuario = $_SESSION['usuario'];
     <link rel="shortcut icon" href="../assets/media/logos/favicon.ico" />
     
     <!--begin::PWA Manifest-->
-    <link rel="manifest" href="../manifest.json">
+    <link rel="manifest" href="../manifest.php">
     <meta name="theme-color" content="#009ef7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">

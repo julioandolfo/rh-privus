@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="shortcut icon" href="assets/media/logos/favicon.png" />
     
     <!--begin::PWA Manifest-->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.php">
     <meta name="theme-color" content="#009ef7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -300,6 +300,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
     <script src="assets/js/onesignal-init.js"></script>
     <!--end::OneSignal SDK-->
+    
+    <!--begin::PWA Service Worker-->
+    <script src="assets/js/pwa-service-worker.js"></script>
+    <!--end::PWA Service Worker-->
     
     <!--begin::PWA Install Prompt-->
     <script src="assets/js/pwa-install-prompt.js"></script>
