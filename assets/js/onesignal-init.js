@@ -14,16 +14,41 @@ const OneSignalInit = {
         }
         
         // Detecta base path automaticamente
+        // Se está em /rh-privus/pages/, usa ../api
+        // Se está em /rh-privus/, usa /rh-privus/api
         const path = window.location.pathname;
-        const basePath = path.includes('/rh-privus') ? '/rh-privus' : '';
+        let apiPath;
+        
+        if (path.includes('/pages/')) {
+            // Está em uma página dentro de pages/
+            apiPath = '../api/onesignal/config.php';
+        } else if (path.includes('/rh-privus')) {
+            // Está na raiz ou outra subpasta
+            apiPath = '/rh-privus/api/onesignal/config.php';
+        } else {
+            // Está na raiz do servidor
+            apiPath = '/api/onesignal/config.php';
+        }
         
         // Busca configurações do servidor
         try {
-            const response = await fetch(basePath + '/api/onesignal/config.php');
+            console.log('Buscando configurações em:', apiPath);
+            const url = apiPath;
+            
+            const response = await fetch(url);
+            
             if (!response.ok) {
-                throw new Error('Erro ao buscar configurações');
+                const errorText = await response.text();
+                console.error('Erro HTTP:', response.status, errorText);
+                throw new Error(`Erro ao buscar configurações (${response.status}): ${errorText.substring(0, 100)}`);
             }
+            
             const config = await response.json();
+            
+            if (config.error) {
+                console.error('Erro na resposta:', config);
+                throw new Error(config.error || 'Erro ao buscar configurações');
+            }
             
             if (!config.appId) {
                 console.warn('OneSignal App ID não configurado');
@@ -33,10 +58,16 @@ const OneSignalInit = {
             this.appId = config.appId;
             this.safariWebId = config.safariWebId || null;
             
+            // Detecta base path para Service Worker
+            const pathForSW = window.location.pathname;
+            let basePathForSW = '';
+            if (pathForSW.includes('/rh-privus')) {
+                basePathForSW = '/rh-privus';
+            }
+            
             // Inicializa OneSignal
             window.OneSignal = window.OneSignal || [];
             const self = this;
-            const basePathForSW = basePath;
             OneSignal.push(function() {
                 OneSignal.init({
                     appId: self.appId,
@@ -84,11 +115,21 @@ const OneSignalInit = {
                 return;
             }
             
-            // Detecta base path
+            // Detecta base path para subscribe
             const path = window.location.pathname;
-            const basePath = path.includes('/rh-privus') ? '/rh-privus' : '';
+            let subscribePath;
             
-            const response = await fetch(basePath + '/api/onesignal/subscribe.php', {
+            if (path.includes('/pages/')) {
+                subscribePath = '../api/onesignal/subscribe.php';
+            } else if (path.includes('/rh-privus')) {
+                subscribePath = '/rh-privus/api/onesignal/subscribe.php';
+            } else {
+                subscribePath = '/api/onesignal/subscribe.php';
+            }
+            
+            console.log('Registrando subscription em:', subscribePath);
+            
+            const response = await fetch(subscribePath, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
