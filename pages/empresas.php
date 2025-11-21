@@ -370,37 +370,54 @@ var KTEmpresasList = function() {
     
     return {
         init: function() {
-            n = document.querySelector("#kt_empresas_table");
-            
-            if (n) {
-                t = $(n).DataTable({
-                    info: false,
-                    order: [],
-                    pageLength: 25,
-                    language: {
-                        url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
-                    },
-                    columnDefs: [
-                        { orderable: false, targets: <?= $usuario['role'] === 'ADMIN' ? 8 : 7 ?> }
-                    ]
-                });
+            // Aguarda um pouco para garantir que o Metronic inicializou completamente
+            setTimeout(function() {
+                n = document.querySelector("#kt_empresas_table");
                 
-                // Busca customizada
-                document.querySelector('[data-kt-empresa-table-filter="search"]').addEventListener("keyup", function(e) {
-                    t.search(e.target.value).draw();
-                });
-                
-                // Inicializa handlers de exclusão
-                initDeleteHandlers();
-                
-                // Reinicializa após draw
-                t.on("draw", function() {
-                    if (typeof KTMenu !== 'undefined') {
-                        KTMenu.init();
+                if (n) {
+                    t = $(n).DataTable({
+                        info: false,
+                        order: [],
+                        pageLength: 25,
+                        language: {
+                            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+                        },
+                        columnDefs: [
+                            { orderable: false, targets: <?= $usuario['role'] === 'ADMIN' ? 8 : 7 ?> }
+                        ]
+                    });
+                    
+                    // Busca customizada
+                    var searchInput = document.querySelector('[data-kt-empresa-table-filter="search"]');
+                    if (searchInput) {
+                        searchInput.addEventListener("keyup", function(e) {
+                            t.search(e.target.value).draw();
+                        });
                     }
+                    
+                    // Inicializa handlers de exclusão
                     initDeleteHandlers();
-                });
-            }
+                    
+                    // Reinicializa apenas os handlers após draw
+                    t.on("draw", function() {
+                        initDeleteHandlers();
+                        
+                        // Inicialização manual de componentes específicos se necessário
+                        // Evita chamar KTMenu.createInstances() que causa conflito com o menu lateral
+                        var menus = document.querySelectorAll('#kt_empresas_table [data-kt-menu="true"]');
+                        if (menus && menus.length > 0) {
+                            menus.forEach(function(el) {
+                                if (typeof KTMenu !== 'undefined') {
+                                    // Tenta reinicializar apenas este elemento
+                                    try {
+                                        KTMenu.init(el);
+                                    } catch (e) {}
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 200);
         }
     };
 }();

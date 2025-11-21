@@ -36,6 +36,104 @@ $usuario = $_SESSION['usuario'];
     
     <link rel="shortcut icon" href="../assets/media/logos/favicon.ico" />
     
+    <!--begin::Header CSS Fix-->
+    <style>
+        /* Garantir que o header tenha fundo sólido */
+        #kt_header.header {
+            background-color: #130061 !important;
+            background-image: none !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        [data-bs-theme="dark"] #kt_header.header {
+            background-color: #1E1E2D !important;
+            border-bottom: 1px solid #2D2D43;
+        }
+        
+        /* Aumentar botão do menu mobile */
+        #kt_aside_toggle {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        #kt_aside_toggle i {
+            font-size: 1.75rem !important;
+        }
+        
+        /* Em desktop, manter layout original do Metronic */
+        @media (min-width: 992px) {
+            #kt_header .container-fluid {
+                display: flex !important;
+                align-items: center !important;
+            }
+            
+            #kt_header .header-brand {
+                display: flex !important;
+                align-items: center !important;
+                margin-right: auto !important;
+            }
+            
+            #kt_header .topbar {
+                margin-left: auto !important;
+            }
+        }
+        
+        /* Garantir que o header seja fixo em mobile */
+        @media (max-width: 991.98px) {
+            #kt_header {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 1040 !important;
+                width: 100% !important;
+            }
+            
+            #kt_header .container-fluid {
+                display: flex !important;
+                align-items: center !important;
+                gap: 1rem !important;
+                position: relative !important;
+                min-height: 60px !important;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+            }
+            
+            #kt_header .header-brand {
+                display: flex !important;
+                align-items: center !important;
+                flex: 1 !important;
+            }
+            
+            #kt_header .topbar {
+                margin-left: auto !important;
+            }
+            
+            /* Garantir que o body tenha padding-top para compensar o header fixo */
+            body {
+                padding-top: 0 !important;
+            }
+            
+            /* O wrapper deve ter margem superior para compensar o header */
+            .wrapper {
+                margin-top: 0 !important;
+            }
+            
+            /* O content deve ter padding-top */
+            #kt_content {
+                padding-top: 80px !important;
+            }
+        }
+    </style>
+    <!--end::Header CSS Fix-->
+    
     <script>
         // Frame-busting to prevent site from being loaded within a frame without permission (click-jacking)
         if (window.top != window.self) {
@@ -79,21 +177,21 @@ $usuario = $_SESSION['usuario'];
                 <!--begin::Header-->
                 <div id="kt_header" class="header header-bg">
                     <!--begin::Container-->
-                    <div class="container-fluid">
-                        <!--begin::Brand-->
-                        <div class="header-brand me-5">
-                            <!--begin::Aside toggle-->
-                            <div class="d-flex align-items-center d-lg-none ms-n2 me-2" title="Show aside menu">
-                                <div class="btn btn-icon btn-color-white btn-active-color-primary w-30px h-30px" id="kt_aside_toggle">
-                                    <i class="ki-duotone ki-abstract-14 fs-1">
-                                        <span class="path1"></span>
-                                        <span class="path2"></span>
-                                    </i>
-                                </div>
+                    <div class="container-fluid d-flex align-items-center position-relative">
+                        <!--begin::Aside toggle-->
+                        <div class="d-flex align-items-center d-lg-none me-2" title="Show aside menu">
+                            <div class="btn btn-icon btn-color-white btn-active-color-primary" id="kt_aside_toggle">
+                                <i class="ki-duotone ki-abstract-14 fs-1">
+                                    <span class="path1"></span>
+                                    <span class="path2"></span>
+                                </i>
                             </div>
-                            <!--end::Aside toggle-->
+                        </div>
+                        <!--end::Aside toggle-->
+                        <!--begin::Brand-->
+                        <div class="header-brand flex-grow-1 d-flex">
                             <!--begin::Logo-->
-                            <a href="dashboard.php">
+                            <a href="dashboard.php" class="d-flex align-items-center">
                                 <img alt="Logo Privus" src="../assets/media/logos/logo-privus-light.png" class="h-25px h-lg-30px d-none d-md-block theme-light-show" />
                                 <img alt="Logo Privus" src="../assets/media/logos/logo-privus-light.png" class="h-25px h-lg-30px d-none d-md-block theme-dark-show" />
                                 <img alt="Logo Privus" src="../assets/media/logos/logo-privus-light.png" class="h-25px d-block d-md-none theme-light-show" />

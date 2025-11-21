@@ -80,9 +80,9 @@ require_once __DIR__ . '/../includes/header.php';
 <!--begin::Toolbar-->
 <div class="toolbar d-flex flex-stack mb-3 mb-lg-5" id="kt_toolbar">
     <div id="kt_toolbar_container" class="container-fluid d-flex flex-stack flex-wrap">
-        <div class="page-title d-flex flex-column me-5 py-2">
-            <h1 class="d-flex flex-column text-gray-900 fw-bold fs-3 mb-0"><?= htmlspecialchars($colaborador['nome_completo']) ?></h1>
-            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 pt-1">
+        <div class="page-title d-flex flex-column me-3 me-lg-5 py-2">
+            <h1 class="d-flex flex-column text-gray-900 fw-bold fs-3 fs-md-4 mb-0"><?= htmlspecialchars($colaborador['nome_completo']) ?></h1>
+            <ul class="breadcrumb breadcrumb-separatorless fw-semibold fs-7 pt-1 d-none d-md-flex">
                 <li class="breadcrumb-item text-muted">
                     <a href="dashboard.php" class="text-muted text-hover-primary">Home</a>
                 </li>
@@ -98,23 +98,25 @@ require_once __DIR__ . '/../includes/header.php';
                 <li class="breadcrumb-item text-gray-900">Visualizar</li>
             </ul>
         </div>
-        <div class="d-flex align-items-center py-2">
+        <div class="d-flex align-items-center py-2 flex-wrap gap-2">
             <?php if ($usuario['role'] !== 'COLABORADOR' && $usuario['role'] !== 'GESTOR'): ?>
-                <a href="colaborador_edit.php?id=<?= $id ?>" class="btn btn-sm btn-warning me-2">
-                    <i class="ki-duotone ki-pencil fs-2">
+                <a href="colaborador_edit.php?id=<?= $id ?>" class="btn btn-sm btn-warning">
+                    <i class="ki-duotone ki-pencil fs-2 d-none d-md-inline">
                         <span class="path1"></span>
                         <span class="path2"></span>
                     </i>
-                    Editar
+                    <span class="d-md-none">Editar</span>
+                    <span class="d-none d-md-inline">Editar</span>
                 </a>
             <?php endif; ?>
             <?php if ($usuario['role'] !== 'COLABORADOR'): ?>
                 <a href="colaboradores.php" class="btn btn-sm btn-light">
-                    <i class="ki-duotone ki-arrow-left fs-2">
+                    <i class="ki-duotone ki-arrow-left fs-2 d-none d-md-inline">
                         <span class="path1"></span>
                         <span class="path2"></span>
                     </i>
-                    Voltar
+                    <span class="d-md-none">Voltar</span>
+                    <span class="d-none d-md-inline">Voltar</span>
                 </a>
             <?php endif; ?>
         </div>
@@ -135,48 +137,52 @@ require_once __DIR__ . '/../includes/header.php';
                 <!--begin::Card title-->
                 <div class="card-title">
                     <!--begin::Tabs-->
-                    <ul class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold">
-                        <li class="nav-item mt-2">
-                            <a class="nav-link text-active-primary ms-0 me-10 py-5 active" data-bs-toggle="tab" href="#kt_tab_pane_dados">
+                    <ul class="nav nav-stretch nav-line-tabs nav-line-tabs-2x border-transparent fs-5 fw-bold overflow-auto flex-nowrap" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                        <li class="nav-item mt-2 flex-shrink-0">
+                            <a class="nav-link text-active-primary ms-0 me-5 me-md-10 py-5 active" data-bs-toggle="tab" href="#kt_tab_pane_dados">
                                 <i class="ki-duotone ki-profile-user fs-2 me-2">
                                     <span class="path1"></span>
                                     <span class="path2"></span>
                                     <span class="path3"></span>
                                     <span class="path4"></span>
                                 </i>
-                                Informações Pessoais
+                                <span class="d-none d-md-inline">Informações Pessoais</span>
+                                <span class="d-md-none">Pessoais</span>
                             </a>
                         </li>
-                        <li class="nav-item mt-2">
-                            <a class="nav-link text-active-primary me-10 py-5" data-bs-toggle="tab" href="#kt_tab_pane_profissional">
+                        <li class="nav-item mt-2 flex-shrink-0">
+                            <a class="nav-link text-active-primary me-5 me-md-10 py-5" data-bs-toggle="tab" href="#kt_tab_pane_profissional">
                                 <i class="ki-duotone ki-briefcase fs-2 me-2">
                                     <span class="path1"></span>
                                     <span class="path2"></span>
                                 </i>
-                                Informações Profissionais
+                                <span class="d-none d-md-inline">Informações Profissionais</span>
+                                <span class="d-md-none">Profissionais</span>
                             </a>
                         </li>
                         <?php if ($usuario['role'] !== 'COLABORADOR'): ?>
-                        <li class="nav-item mt-2">
-                            <a class="nav-link text-active-primary me-10 py-5" data-bs-toggle="tab" href="#kt_tab_pane_bonus">
+                        <li class="nav-item mt-2 flex-shrink-0">
+                            <a class="nav-link text-active-primary me-5 me-md-10 py-5" data-bs-toggle="tab" href="#kt_tab_pane_bonus">
                                 <i class="ki-duotone ki-wallet fs-2 me-2">
                                     <span class="path1"></span>
                                     <span class="path2"></span>
                                 </i>
-                                Bônus/Pagamentos
+                                <span class="d-none d-md-inline">Bônus/Pagamentos</span>
+                                <span class="d-md-none">Bônus</span>
                                 <?php if (count($bonus_colaborador) > 0): ?>
                                 <span class="badge badge-circle badge-success ms-2"><?= count($bonus_colaborador) ?></span>
                                 <?php endif; ?>
                             </a>
                         </li>
                         <?php endif; ?>
-                        <li class="nav-item mt-2">
+                        <li class="nav-item mt-2 flex-shrink-0">
                             <a class="nav-link text-active-primary py-5" data-bs-toggle="tab" href="#kt_tab_pane_ocorrencias">
                                 <i class="ki-duotone ki-clipboard fs-2 me-2">
                                     <span class="path1"></span>
                                     <span class="path2"></span>
                                 </i>
-                                Ocorrências
+                                <span class="d-none d-md-inline">Ocorrências</span>
+                                <span class="d-md-none">Ocorrências</span>
                                 <?php if (count($ocorrencias) > 0): ?>
                                 <span class="badge badge-circle badge-danger ms-2"><?= count($ocorrencias) ?></span>
                                 <?php endif; ?>
@@ -207,40 +213,42 @@ require_once __DIR__ . '/../includes/header.php';
                                         <div class="d-flex flex-column gap-7 gap-lg-10">
                                             <div class="d-flex flex-wrap gap-5">
                                                 <div class="flex-row-fluid">
-                                                    <table class="table table-row-bordered table-row-gray-100 align-middle gs-0 gy-3">
-                                                        <tbody>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold min-w-150px">Nome Completo</th>
-                                                                <td class="text-gray-800 fw-semibold"><?= htmlspecialchars($colaborador['nome_completo']) ?></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">CPF</th>
-                                                                <td class="text-gray-800"><?= formatar_cpf($colaborador['cpf']) ?></td>
-                                                            </tr>
-                                                            <?php if ($colaborador['tipo_contrato'] === 'PJ' && !empty($colaborador['cnpj'])): ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">CNPJ</th>
-                                                                <td class="text-gray-800"><?= formatar_cnpj($colaborador['cnpj']) ?></td>
-                                                            </tr>
-                                                            <?php endif; ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">RG</th>
-                                                                <td class="text-gray-800"><?= $colaborador['rg'] ? htmlspecialchars($colaborador['rg']) : '-' ?></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Data de Nascimento</th>
-                                                                <td class="text-gray-800"><?= formatar_data($colaborador['data_nascimento']) ?></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Telefone</th>
-                                                                <td class="text-gray-800"><?= formatar_telefone($colaborador['telefone']) ?: '-' ?></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Email Pessoal</th>
-                                                                <td class="text-gray-800"><?= $colaborador['email_pessoal'] ? htmlspecialchars($colaborador['email_pessoal']) : '-' ?></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-row-bordered table-row-gray-100 align-middle gs-0 gy-3">
+                                                            <tbody>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold min-w-150px">Nome Completo</th>
+                                                                    <td class="text-gray-800 fw-semibold"><?= htmlspecialchars($colaborador['nome_completo']) ?></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">CPF</th>
+                                                                    <td class="text-gray-800"><?= formatar_cpf($colaborador['cpf']) ?></td>
+                                                                </tr>
+                                                                <?php if ($colaborador['tipo_contrato'] === 'PJ' && !empty($colaborador['cnpj'])): ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">CNPJ</th>
+                                                                    <td class="text-gray-800"><?= formatar_cnpj($colaborador['cnpj']) ?></td>
+                                                                </tr>
+                                                                <?php endif; ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">RG</th>
+                                                                    <td class="text-gray-800"><?= $colaborador['rg'] ? htmlspecialchars($colaborador['rg']) : '-' ?></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Data de Nascimento</th>
+                                                                    <td class="text-gray-800"><?= formatar_data($colaborador['data_nascimento']) ?></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Telefone</th>
+                                                                    <td class="text-gray-800"><?= formatar_telefone($colaborador['telefone']) ?: '-' ?></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Email Pessoal</th>
+                                                                    <td class="text-gray-800"><?= $colaborador['email_pessoal'] ? htmlspecialchars($colaborador['email_pessoal']) : '-' ?></td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -259,62 +267,64 @@ require_once __DIR__ . '/../includes/header.php';
                                         <div class="d-flex flex-column gap-7 gap-lg-10">
                                             <div class="d-flex flex-wrap gap-5">
                                                 <div class="flex-row-fluid">
-                                                    <table class="table table-row-bordered table-row-gray-100 align-middle gs-0 gy-3">
-                                                        <tbody>
-                                                            <?php if ($usuario['role'] === 'ADMIN'): ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold min-w-150px">Empresa</th>
-                                                                <td class="text-gray-800 fw-semibold"><?= htmlspecialchars($colaborador['empresa_nome']) ?></td>
-                                                            </tr>
-                                                            <?php endif; ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Setor</th>
-                                                                <td class="text-gray-800"><?= htmlspecialchars($colaborador['nome_setor']) ?></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Cargo</th>
-                                                                <td class="text-gray-800"><?= htmlspecialchars($colaborador['nome_cargo']) ?></td>
-                                                            </tr>
-                                                            <?php if (!empty($colaborador['nivel_nome'])): ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Nível Hierárquico</th>
-                                                                <td class="text-gray-800"><?= htmlspecialchars($colaborador['nivel_nome']) ?> (<?= htmlspecialchars($colaborador['nivel_codigo']) ?>)</td>
-                                                            </tr>
-                                                            <?php endif; ?>
-                                                            <?php if (!empty($colaborador['lider_nome'])): ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Líder</th>
-                                                                <td class="text-gray-800"><?= htmlspecialchars($colaborador['lider_nome']) ?></td>
-                                                            </tr>
-                                                            <?php endif; ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Data de Início</th>
-                                                                <td class="text-gray-800"><?= formatar_data($colaborador['data_inicio']) ?></td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Tipo de Contrato</th>
-                                                                <td class="text-gray-800"><?= htmlspecialchars($colaborador['tipo_contrato']) ?></td>
-                                                            </tr>
-                                                            <?php if (!empty($colaborador['salario'])): ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Salário</th>
-                                                                <td class="text-gray-800 fw-bold text-success">R$ <?= number_format($colaborador['salario'], 2, ',', '.') ?></td>
-                                                            </tr>
-                                                            <?php endif; ?>
-                                                            <tr>
-                                                                <th class="text-gray-600 fw-semibold">Status</th>
-                                                                <td>
-                                                                    <?php if ($colaborador['status'] === 'ativo'): ?>
-                                                                        <span class="badge badge-light-success">Ativo</span>
-                                                                    <?php elseif ($colaborador['status'] === 'pausado'): ?>
-                                                                        <span class="badge badge-light-warning">Pausado</span>
-                                                                    <?php else: ?>
-                                                                        <span class="badge badge-light-secondary">Desligado</span>
-                                                                    <?php endif; ?>
-                                                                </td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-row-bordered table-row-gray-100 align-middle gs-0 gy-3">
+                                                            <tbody>
+                                                                <?php if ($usuario['role'] === 'ADMIN'): ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold min-w-150px">Empresa</th>
+                                                                    <td class="text-gray-800 fw-semibold"><?= htmlspecialchars($colaborador['empresa_nome']) ?></td>
+                                                                </tr>
+                                                                <?php endif; ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Setor</th>
+                                                                    <td class="text-gray-800"><?= htmlspecialchars($colaborador['nome_setor']) ?></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Cargo</th>
+                                                                    <td class="text-gray-800"><?= htmlspecialchars($colaborador['nome_cargo']) ?></td>
+                                                                </tr>
+                                                                <?php if (!empty($colaborador['nivel_nome'])): ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Nível Hierárquico</th>
+                                                                    <td class="text-gray-800"><?= htmlspecialchars($colaborador['nivel_nome']) ?> (<?= htmlspecialchars($colaborador['nivel_codigo']) ?>)</td>
+                                                                </tr>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($colaborador['lider_nome'])): ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Líder</th>
+                                                                    <td class="text-gray-800"><?= htmlspecialchars($colaborador['lider_nome']) ?></td>
+                                                                </tr>
+                                                                <?php endif; ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Data de Início</th>
+                                                                    <td class="text-gray-800"><?= formatar_data($colaborador['data_inicio']) ?></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Tipo de Contrato</th>
+                                                                    <td class="text-gray-800"><?= htmlspecialchars($colaborador['tipo_contrato']) ?></td>
+                                                                </tr>
+                                                                <?php if (!empty($colaborador['salario'])): ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Salário</th>
+                                                                    <td class="text-gray-800 fw-bold text-success">R$ <?= number_format($colaborador['salario'], 2, ',', '.') ?></td>
+                                                                </tr>
+                                                                <?php endif; ?>
+                                                                <tr>
+                                                                    <th class="text-gray-600 fw-semibold">Status</th>
+                                                                    <td>
+                                                                        <?php if ($colaborador['status'] === 'ativo'): ?>
+                                                                            <span class="badge badge-light-success">Ativo</span>
+                                                                        <?php elseif ($colaborador['status'] === 'pausado'): ?>
+                                                                            <span class="badge badge-light-warning">Pausado</span>
+                                                                        <?php else: ?>
+                                                                            <span class="badge badge-light-secondary">Desligado</span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -350,8 +360,9 @@ require_once __DIR__ . '/../includes/header.php';
                                         </h3>
                                     </div>
                                     <div class="card-body pt-6">
-                                        <table class="table table-row-bordered table-row-gray-100 align-middle gs-0 gy-3">
-                                            <tbody>
+                                        <div class="table-responsive">
+                                            <table class="table table-row-bordered table-row-gray-100 align-middle gs-0 gy-3">
+                                                <tbody>
                                                 <?php if (!empty($colaborador['salario'])): ?>
                                                 <tr>
                                                     <th class="text-gray-600 fw-semibold min-w-200px">Salário</th>
@@ -388,8 +399,9 @@ require_once __DIR__ . '/../includes/header.php';
                                                     <td class="text-gray-800"><?= ucfirst($colaborador['tipo_conta']) ?></td>
                                                 </tr>
                                                 <?php endif; ?>
-                                            </tbody>
-                                        </table>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -415,9 +427,9 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php if ($usuario['role'] !== 'COLABORADOR'): ?>
                     <!--begin::Tab Pane - Bônus/Pagamentos-->
                     <div class="tab-pane fade" id="kt_tab_pane_bonus" role="tabpanel">
-                        <div class="d-flex justify-content-between align-items-center mb-7">
-                            <h3 class="fw-bold text-gray-800">Bônus e Pagamentos do Colaborador</h3>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_bonus" onclick="novoBonus()">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-7 gap-3">
+                            <h3 class="fw-bold text-gray-800 mb-0">Bônus e Pagamentos do Colaborador</h3>
+                            <button type="button" class="btn btn-primary w-100 w-md-auto" data-bs-toggle="modal" data-bs-target="#kt_modal_bonus" onclick="novoBonus()">
                                 <i class="ki-duotone ki-plus fs-2">
                                     <span class="path1"></span>
                                     <span class="path2"></span>
@@ -495,10 +507,10 @@ require_once __DIR__ . '/../includes/header.php';
                     
                     <!--begin::Tab Pane - Ocorrências-->
                     <div class="tab-pane fade" id="kt_tab_pane_ocorrencias" role="tabpanel">
-                        <div class="d-flex justify-content-between align-items-center mb-7">
-                            <h3 class="fw-bold text-gray-800">Ocorrências do Colaborador</h3>
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-7 gap-3">
+                            <h3 class="fw-bold text-gray-800 mb-0">Ocorrências do Colaborador</h3>
                             <?php if ($usuario['role'] !== 'COLABORADOR'): ?>
-                                <a href="ocorrencias_add.php?colaborador_id=<?= $id ?>" class="btn btn-primary">
+                                <a href="ocorrencias_add.php?colaborador_id=<?= $id ?>" class="btn btn-primary w-100 w-md-auto">
                                     <i class="ki-duotone ki-plus fs-2">
                                         <span class="path1"></span>
                                         <span class="path2"></span>

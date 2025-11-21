@@ -349,10 +349,20 @@ var KTColaboradoresList = function() {
                     t.search(e.target.value).draw();
                 });
                 
-                // Reinicializa após draw
+                // Reinicializa apenas os handlers após draw
                 t.on("draw", function() {
-                    if (typeof KTMenu !== 'undefined') {
-                        KTMenu.init();
+                    // Inicialização manual de componentes específicos se necessário
+                    // Evita chamar KTMenu.createInstances() que causa conflito com o menu lateral
+                    var menus = document.querySelectorAll('#kt_colaboradores_table [data-kt-menu="true"]');
+                    if (menus && menus.length > 0) {
+                        menus.forEach(function(el) {
+                            if (typeof KTMenu !== 'undefined') {
+                                // Tenta reinicializar apenas este elemento
+                                try {
+                                    KTMenu.init(el);
+                                } catch (e) {}
+                            }
+                        });
                     }
                 });
             }
