@@ -111,11 +111,30 @@ const OneSignalInit = {
             console.log('🔧 Path atual:', pathForSW);
             console.log('🔧 Hostname:', hostname);
             
+            // Configura meta tag para o OneSignal usar o caminho correto (DEVE estar antes do init)
+            let metaTag = document.querySelector('meta[name="onesignal-service-worker-path"]');
+            if (metaTag) {
+                // Atualiza se já existe
+                metaTag.content = basePathForSW + '/OneSignalSDKWorker.js';
+                console.log('🔧 Meta tag atualizada:', basePathForSW + '/OneSignalSDKWorker.js');
+            } else {
+                // Cria se não existe
+                metaTag = document.createElement('meta');
+                metaTag.name = 'onesignal-service-worker-path';
+                metaTag.content = basePathForSW + '/OneSignalSDKWorker.js';
+                document.head.insertBefore(metaTag, document.head.firstChild);
+                console.log('🔧 Meta tag criada:', basePathForSW + '/OneSignalSDKWorker.js');
+            }
+            
+            // Verifica se foi aplicada corretamente
+            const finalMeta = document.querySelector('meta[name="onesignal-service-worker-path"]');
+            console.log('🔧 Meta tag final:', finalMeta ? finalMeta.content : 'NÃO ENCONTRADA');
+            
             // Inicializa OneSignal
             window.OneSignal = window.OneSignal || [];
             const self = this;
             OneSignal.push(function() {
-                OneSignal.init({
+                const initConfig = {
                     appId: self.appId,
                     safari_web_id: self.safariWebId,
                     notifyButton: {
@@ -124,14 +143,16 @@ const OneSignalInit = {
                     allowLocalhostAsSecureOrigin: true, // Para testes em localhost
                     autoResubscribe: true,
                     serviceWorkerParam: {
-                        scope: basePathForSW + '/'
+                        scope: basePathForSW + '/',
+                        path: basePathForSW + '/OneSignalSDKWorker.js'
                     },
                     serviceWorkerPath: basePathForSW + '/OneSignalSDKWorker.js',
-                    // Log para debug
-                    onInit: function() {
-                        console.log('✅ OneSignal inicializado com Service Worker em:', basePathForSW + '/OneSignalSDKWorker.js');
-                    }
-                });
+                    path: basePathForSW + '/'
+                };
+                
+                console.log('🔧 Configuração OneSignal:', initConfig);
+                
+                OneSignal.init(initConfig);
                 
                 // Registra quando usuário se inscreve
                 OneSignal.on('subscriptionChange', function(isSubscribed) {

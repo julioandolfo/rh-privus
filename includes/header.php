@@ -45,6 +45,20 @@ $usuario = $_SESSION['usuario'];
     <link rel="apple-touch-icon" href="../assets/media/logos/favicon.png">
     <!--end::PWA Manifest-->
     
+    <!--begin::OneSignal Service Worker Path-->
+    <?php
+    // Detecta base path para OneSignal
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    $basePath = '/rh';
+    if (strpos($requestUri, '/rh-privus') !== false) {
+        $basePath = '/rh-privus';
+    } elseif (strpos($requestUri, '/rh/') !== false || preg_match('#^/rh[^a-z]#', $requestUri)) {
+        $basePath = '/rh';
+    }
+    ?>
+    <meta name="onesignal-service-worker-path" content="<?= $basePath ?>/OneSignalSDKWorker.js">
+    <!--end::OneSignal Service Worker Path-->
+    
     <!--begin::Header CSS Fix-->
     <style>
         /* Garantir que o header tenha fundo sólido */
