@@ -111,36 +111,12 @@ const OneSignalInit = {
             console.log('🔧 Path atual:', pathForSW);
             console.log('🔧 Hostname:', hostname);
             
-            // Configura meta tag para o OneSignal usar o caminho correto (DEVE estar antes do init)
-            let metaTag = document.querySelector('meta[name="onesignal-service-worker-path"]');
-            if (metaTag) {
-                // Atualiza se já existe
-                metaTag.content = basePathForSW + '/OneSignalSDKWorker.js';
-                console.log('🔧 Meta tag atualizada:', basePathForSW + '/OneSignalSDKWorker.js');
-            } else {
-                // Cria se não existe
-                metaTag = document.createElement('meta');
-                metaTag.name = 'onesignal-service-worker-path';
-                metaTag.content = basePathForSW + '/OneSignalSDKWorker.js';
-                document.head.insertBefore(metaTag, document.head.firstChild);
-                console.log('🔧 Meta tag criada:', basePathForSW + '/OneSignalSDKWorker.js');
-            }
-            
-            // Verifica se foi aplicada corretamente
-            const finalMeta = document.querySelector('meta[name="onesignal-service-worker-path"]');
-            console.log('🔧 Meta tag final:', finalMeta ? finalMeta.content : 'NÃO ENCONTRADA');
+            // OneSignal está na raiz agora, então usa caminho padrão
+            // O SDK vai encontrar automaticamente em /OneSignalSDKWorker.js
             
             // Inicializa OneSignal
             window.OneSignal = window.OneSignal || [];
             const self = this;
-            
-            // Usa configuração global se disponível (definida no header)
-            const globalConfig = window.OneSignalConfig || {};
-            const swPath = globalConfig.serviceWorkerPath || (basePathForSW + '/OneSignalSDKWorker.js');
-            const swScope = globalConfig.serviceWorkerParam?.scope || (basePathForSW + '/');
-            
-            console.log('🔧 Usando Service Worker Path:', swPath);
-            console.log('🔧 Usando Service Worker Scope:', swScope);
             
             OneSignal.push(function() {
                 const initConfig = {
@@ -152,14 +128,12 @@ const OneSignalInit = {
                     allowLocalhostAsSecureOrigin: true, // Para testes em localhost
                     autoResubscribe: true,
                     serviceWorkerParam: {
-                        scope: swScope,
-                        path: swPath
-                    },
-                    serviceWorkerPath: swPath,
-                    path: basePathForSW + '/'
+                        scope: basePathForSW + '/'
+                    }
+                    // Não precisa mais especificar serviceWorkerPath - OneSignal vai usar da raiz
                 };
                 
-                console.log('🔧 Configuração OneSignal completa:', JSON.stringify(initConfig, null, 2));
+                console.log('🔧 Inicializando OneSignal com App ID:', self.appId);
                 
                 OneSignal.init(initConfig);
                 

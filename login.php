@@ -176,33 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="apple-touch-icon" href="assets/media/logos/favicon.png">
     <!--end::PWA Manifest-->
     
-    <!--begin::OneSignal Service Worker Path-->
-    <?php
-    // Detecta base path para OneSignal
-    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-    $basePath = '/rh';
-    if (strpos($requestUri, '/rh-privus') !== false) {
-        $basePath = '/rh-privus';
-    } elseif (strpos($requestUri, '/rh/') !== false || preg_match('#^/rh[^a-z]#', $requestUri)) {
-        $basePath = '/rh';
-    }
-    ?>
-    <meta name="onesignal-service-worker-path" content="<?= $basePath ?>/OneSignalSDKWorker.js">
-    <!-- Configura OneSignal ANTES do SDK carregar -->
-    <script>
-        window.OneSignal = window.OneSignal || [];
-        window.OneSignal.push(function() {
-            // Esta configuração será aplicada quando o SDK carregar
-        });
-        // Define configuração global antes do SDK carregar
-        window.OneSignalConfig = {
-            serviceWorkerPath: '<?= $basePath ?>/OneSignalSDKWorker.js',
-            serviceWorkerParam: {
-                scope: '<?= $basePath ?>/'
-            }
-        };
-    </script>
-    <!--end::OneSignal Service Worker Path-->
     
     <!--begin::Fonts-->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" />
