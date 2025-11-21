@@ -34,6 +34,20 @@ const PWAInstallPrompt = {
     },
     
     showInstallBanner() {
+        // Verifica se foi dispensado há menos de 30 dias
+        const dismissed = localStorage.getItem('pwa-install-dismissed');
+        if (dismissed) {
+            const dismissedDate = parseInt(dismissed);
+            const thirtyDays = 30 * 24 * 60 * 60 * 1000; // 30 dias em milissegundos
+            const daysSinceDismissed = Date.now() - dismissedDate;
+            
+            if (daysSinceDismissed < thirtyDays) {
+                const daysRemaining = Math.ceil((thirtyDays - daysSinceDismissed) / (24 * 60 * 60 * 1000));
+                console.log(`Banner de instalação dispensado. Aparecerá novamente em ${daysRemaining} dias.`);
+                return; // Não mostra o banner
+            }
+        }
+        
         // Cria banner de instalação para Android
         const banner = document.createElement('div');
         banner.id = 'pwa-install-banner';
@@ -89,8 +103,9 @@ const PWAInstallPrompt = {
         // Botão de fechar
         document.getElementById('pwa-install-close').addEventListener('click', () => {
             banner.remove();
-            // Salva preferência para não mostrar novamente hoje
+            // Salva preferência para não mostrar novamente por 30 dias
             localStorage.setItem('pwa-install-dismissed', Date.now());
+            console.log('Banner dispensado. Aparecerá novamente em 30 dias.');
         });
     },
     

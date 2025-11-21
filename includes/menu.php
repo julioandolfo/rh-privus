@@ -286,6 +286,21 @@ function getIcon($name) {
                         </a>
                     </div>
                     <!--end:Menu item-->
+                    
+                    <!--begin:Menu item-->
+                    <div class="menu-item">
+                        <a class="menu-link <?= isActive('enviar_notificacao_push.php') ?>" href="enviar_notificacao_push.php">
+                            <span class="menu-icon">
+                                <i class="ki-duotone ki-<?= getIcon('notification') ?> fs-2">
+                                    <span class="path1"></span>
+                                    <span class="path2"></span>
+                                    <span class="path3"></span>
+                                </i>
+                            </span>
+                            <span class="menu-title">Enviar Notificação Push</span>
+                        </a>
+                    </div>
+                    <!--end:Menu item-->
                 <?php else: ?>
                     <!--begin:Menu item-->
                     <div class="menu-item">
