@@ -1,6 +1,6 @@
 // Service Worker - RH Privus PWA
 // OneSignal SDK será carregado automaticamente via OneSignalSDKWorker.js
-const CACHE_NAME = 'rh-privus-v1';
+const CACHE_NAME = 'rh-privus-v2'; // Atualizado para forçar atualização
 
 // Detecta BASE_PATH automaticamente
 // Funciona tanto em /rh-privus/ (localhost) quanto /rh/ (produção)
@@ -99,15 +99,26 @@ self.addEventListener('fetch', (event) => {
           const responseToCache = response.clone();
           
           // Tenta fazer cache, mas ignora erros
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(request, responseToCache).catch((err) => {
-                console.warn('Erro ao fazer cache:', err);
-              });
-            })
-            .catch((err) => {
-              console.warn('Erro ao abrir cache:', err);
-            });
+          // Verifica novamente antes de fazer cache (proteção extra)
+          try {
+            const finalUrl = new URL(request.url);
+            if (finalUrl.protocol === 'http:' || finalUrl.protocol === 'https:') {
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(request, responseToCache).catch((err) => {
+                    // Ignora erros silenciosamente (chrome-extension, etc)
+                    if (err.message && !err.message.includes('chrome-extension')) {
+                      console.warn('Erro ao fazer cache:', err);
+                    }
+                  });
+                })
+                .catch((err) => {
+                  // Ignora erros silenciosamente
+                });
+            }
+          } catch (e) {
+            // Ignora erros de URL inválida
+          }
           
           return response;
         }).catch((error) => {

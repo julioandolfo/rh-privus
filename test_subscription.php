@@ -107,6 +107,9 @@ $usuario = $_SESSION['usuario'];
     <script src="assets/js/onesignal-init.js"></script>
     
     <script>
+        // Guarda o console.log original antes de qualquer interceptação
+        const originalConsoleLog = console.log.bind(console);
+        
         const log = (message, type = 'info') => {
             const logsDiv = document.getElementById('logs');
             const item = document.createElement('div');
@@ -114,7 +117,8 @@ $usuario = $_SESSION['usuario'];
             item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
             logsDiv.appendChild(item);
             logsDiv.scrollTop = logsDiv.scrollHeight;
-            console.log(message);
+            // Usa o console.log original, não o interceptado
+            originalConsoleLog(message);
         };
         
         const clearLogs = () => {
@@ -228,14 +232,15 @@ $usuario = $_SESSION['usuario'];
         });
         
         // Intercepta logs do OneSignalInit (sem loop)
-        let isLogging = false;
-        const originalLog = console.log;
+        let isIntercepting = false;
+        const originalLog = originalConsoleLog; // Usa o mesmo original
+        
         console.log = function(...args) {
-            // Chama o log original primeiro
+            // Chama o log original primeiro (sempre)
             originalLog.apply(console, args);
             
             // Evita loop infinito
-            if (isLogging) {
+            if (isIntercepting) {
                 return;
             }
             
@@ -243,12 +248,21 @@ $usuario = $_SESSION['usuario'];
             if (args[0] && typeof args[0] === 'string') {
                 const message = args[0];
                 if (message.includes('OneSignal') || message.includes('Player') || message.includes('subscription') || 
-                    message.includes('✅') || message.includes('❌') || message.includes('⚠️') || message.includes('📱')) {
-                    isLogging = true;
+                    message.includes('✅') || message.includes('❌') || message.includes('⚠️') || message.includes('📱') ||
+                    message.includes('Buscando configurações')) {
+                    isIntercepting = true;
                     try {
-                        log(message, 'info');
+                        // Adiciona ao log visual sem chamar console.log novamente
+                        const logsDiv = document.getElementById('logs');
+                        if (logsDiv) {
+                            const item = document.createElement('div');
+                            item.className = 'log-item log-info';
+                            item.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                            logsDiv.appendChild(item);
+                            logsDiv.scrollTop = logsDiv.scrollHeight;
+                        }
                     } finally {
-                        isLogging = false;
+                        isIntercepting = false;
                     }
                 }
             }
