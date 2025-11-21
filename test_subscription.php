@@ -87,6 +87,7 @@ $usuario = $_SESSION['usuario'];
         <div id="onesignal-status">Carregando...</div>
         <button onclick="checkOneSignal()">Verificar OneSignal</button>
         <button onclick="getPlayerId()">Obter Player ID</button>
+        <button onclick="requestPermission()" style="background: #28a745;">🔔 Solicitar Permissão</button>
         <button onclick="registerPlayer()">Registrar Player</button>
         <button onclick="checkSubscriptions()">Verificar Subscriptions</button>
     </div>
@@ -138,17 +139,88 @@ $usuario = $_SESSION['usuario'];
         
         const getPlayerId = () => {
             log('Obtendo Player ID...', 'info');
+            if (typeof OneSignal === 'undefined') {
+                log('❌ OneSignal não está carregado', 'error');
+                return;
+            }
+            
             OneSignal.push(function() {
-                OneSignal.getUserId(function(userId) {
-                    if (userId) {
-                        log(`✅ Player ID: ${userId}`, 'success');
-                        document.getElementById('onesignal-status').innerHTML = `<span class="success">✅ Player ID: ${userId}</span>`;
-                    } else {
-                        log('⚠️ Player ID não disponível ainda', 'warning');
-                        document.getElementById('onesignal-status').innerHTML = '<span class="warning">⚠️ Player ID não disponível</span>';
+                // Verifica permissão primeiro
+                OneSignal.getNotificationPermission(function(permission) {
+                    log(`📱 Permissão atual: ${permission}`, 'info');
+                    
+                    if (permission === 'denied') {
+                        log('❌ Permissão negada. Limpe as configurações do site e tente novamente.', 'error');
+                        document.getElementById('onesignal-status').innerHTML = '<span class="error">❌ Permissão negada</span>';
+                        return;
                     }
+                    
+                    OneSignal.getUserId(function(userId) {
+                        if (userId) {
+                            log(`✅ Player ID: ${userId}`, 'success');
+                            document.getElementById('onesignal-status').innerHTML = `<span class="success">✅ Player ID: ${userId.substring(0, 30)}...</span>`;
+                        } else {
+                            log('⚠️ Player ID não disponível ainda', 'warning');
+                            if (permission === 'default') {
+                                log('💡 Dica: Clique em "Solicitar Permissão" primeiro', 'info');
+                            }
+                            document.getElementById('onesignal-status').innerHTML = '<span class="warning">⚠️ Player ID não disponível</span>';
+                        }
+                    });
                 });
             });
+        };
+        
+        const requestPermission = async () => {
+            log('🔔 Solicitando permissão de notificações...', 'info');
+            
+            if (typeof OneSignal === 'undefined') {
+                log('❌ OneSignal não está carregado. Aguarde alguns segundos e tente novamente.', 'error');
+                return;
+            }
+            
+            try {
+                // Verifica permissão atual primeiro
+                OneSignal.push(function() {
+                    OneSignal.getNotificationPermission(function(currentPermission) {
+                        log(`📱 Permissão atual: ${currentPermission}`, 'info');
+                        
+                        if (currentPermission === 'granted') {
+                            log('✅ Permissão já concedida! Registrando player...', 'success');
+                            setTimeout(() => {
+                                OneSignalInit.registerPlayer();
+                            }, 500);
+                            return;
+                        }
+                        
+                        if (currentPermission === 'denied') {
+                            log('❌ Permissão foi negada anteriormente.', 'error');
+                            log('💡 Para permitir novamente:', 'info');
+                            log('   1. Clique no ícone de cadeado na barra de endereço', 'info');
+                            log('   2. Vá em "Notificações"', 'info');
+                            log('   3. Mude para "Permitir"', 'info');
+                            return;
+                        }
+                        
+                        // Solicita permissão
+                        log('📱 Mostrando prompt de permissão...', 'info');
+                        const result = OneSignalInit.subscribe();
+                        
+                        result.then((success) => {
+                            if (success) {
+                                log('✅ Permissão concedida! Player será registrado automaticamente.', 'success');
+                            } else {
+                                log('⚠️ Permissão não foi concedida', 'warning');
+                            }
+                        }).catch((error) => {
+                            log(`❌ Erro: ${error.message}`, 'error');
+                        });
+                    });
+                });
+            } catch (error) {
+                log(`❌ Erro ao solicitar permissão: ${error.message}`, 'error');
+                console.error('Erro completo:', error);
+            }
         };
         
         const registerPlayer = async () => {
@@ -170,14 +242,24 @@ $usuario = $_SESSION['usuario'];
                     basePath = '/rh-privus';
                 }
                 
-                const url = basePath + '/api/onesignal/subscribe.php';
+                const url = basePath + '/api/onesignal/list_subscriptions.php';
                 const response = await fetch(url, {
                     method: 'GET',
                     credentials: 'include'
                 });
                 
                 const data = await response.json();
-                log(`Resposta: ${JSON.stringify(data)}`, 'info');
+                if (data.success) {
+                    log(`✅ Encontradas ${data.count} subscription(s)`, 'success');
+                    if (data.subscriptions.length > 0) {
+                        data.subscriptions.forEach(sub => {
+                            log(`  - Player ID: ${sub.player_id.substring(0, 30)}...`, 'info');
+                        });
+                    }
+                } else {
+                    log(`❌ Erro: ${data.message}`, 'error');
+                }
+                loadSubscriptions(); // Atualiza a lista visual
             } catch (error) {
                 log(`❌ Erro: ${error.message}`, 'error');
             }

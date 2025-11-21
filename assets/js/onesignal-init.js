@@ -123,6 +123,16 @@ const OneSignalInit = {
                         if (isEnabled) {
                             console.log('✅ Notificações já habilitadas, registrando player...');
                             OneSignalInit.registerPlayer();
+                        } else {
+                            // Se não está habilitado, verifica permissão do browser
+                            OneSignal.getNotificationPermission(function(permission) {
+                                console.log('📱 Permissão do browser:', permission);
+                                if (permission === 'default') {
+                                    console.log('⚠️ Permissão ainda não foi solicitada. Use o botão para solicitar.');
+                                } else if (permission === 'denied') {
+                                    console.log('❌ Permissão negada pelo usuário');
+                                }
+                            });
                         }
                     });
                 }, 2000);
@@ -247,13 +257,45 @@ const OneSignalInit = {
     // Solicita permissão e inscreve
     async subscribe() {
         if (typeof OneSignal === 'undefined') {
+            console.error('❌ OneSignal não está carregado');
             return false;
         }
         
         return new Promise((resolve) => {
-            OneSignal.registerForPushNotifications(function() {
-                OneSignalInit.registerPlayer();
-                resolve(true);
+            OneSignal.push(function() {
+                // Verifica permissão atual
+                OneSignal.getNotificationPermission(function(permission) {
+                    console.log('📱 Permissão atual:', permission);
+                    
+                    if (permission === 'granted') {
+                        console.log('✅ Permissão já concedida, registrando player...');
+                        setTimeout(() => {
+                            OneSignalInit.registerPlayer();
+                        }, 500);
+                        resolve(true);
+                    } else if (permission === 'default') {
+                        console.log('📱 Solicitando permissão...');
+                        
+                        // Escuta mudança de permissão
+                        OneSignal.on('notificationPermissionChange', function(newPermission) {
+                            console.log('📱 Permissão mudou para:', newPermission);
+                            if (newPermission === 'granted') {
+                                setTimeout(() => {
+                                    OneSignalInit.registerPlayer();
+                                }, 1000);
+                                resolve(true);
+                            } else {
+                                resolve(false);
+                            }
+                        });
+                        
+                        // Mostra prompt nativo
+                        OneSignal.showNativePrompt();
+                    } else {
+                        console.log('❌ Permissão negada pelo usuário');
+                        resolve(false);
+                    }
+                });
             });
         });
     },
