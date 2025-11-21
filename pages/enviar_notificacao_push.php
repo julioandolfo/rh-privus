@@ -7,6 +7,11 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/push_notifications.php';
 
+// Inicia sessão se não estiver iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_login();
 
 // Apenas ADMIN e RH podem acessar
@@ -18,6 +23,15 @@ $pdo = getDB();
 $usuario = $_SESSION['usuario'];
 $success = '';
 $error = '';
+
+// Verifica se a tabela onesignal_subscriptions existe
+try {
+    $pdo->query("SELECT 1 FROM onesignal_subscriptions LIMIT 1");
+} catch (PDOException $e) {
+    $error = 'Tabela onesignal_subscriptions não encontrada. Execute a migração primeiro.';
+    $subscriptions = [];
+    $total_usuarios = 0;
+}
 
 // Processa envio de notificação
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_notificacao'])) {
@@ -76,36 +90,56 @@ if ($filtro_role) {
 
 $whereClause = !empty($where) ? 'AND ' . implode(' AND ', $where) : '';
 
-$sql = "
-    SELECT 
-        os.usuario_id,
-        os.colaborador_id,
-        GROUP_CONCAT(os.player_id) as player_ids,
-        GROUP_CONCAT(os.device_type) as device_types,
-        MAX(os.created_at) as created_at,
-        u.nome as usuario_nome,
-        u.email as usuario_email,
-        u.role as usuario_role,
-        c.nome as colaborador_nome,
-        COUNT(os.id) as total_dispositivos
-    FROM onesignal_subscriptions os
-    LEFT JOIN usuarios u ON os.usuario_id = u.id
-    LEFT JOIN colaboradores c ON os.colaborador_id = c.id
-    WHERE 1=1 {$whereClause}
-    GROUP BY os.usuario_id, os.colaborador_id
-    ORDER BY MAX(os.created_at) DESC
-";
+// Inicializa variáveis
+$subscriptions = [];
+$total_usuarios = 0;
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$subscriptions = $stmt->fetchAll();
+// Só executa queries se não houver erro anterior
+if (empty($error)) {
+    $sql = "
+        SELECT 
+            os.usuario_id,
+            os.colaborador_id,
+            GROUP_CONCAT(DISTINCT os.player_id SEPARATOR ',') as player_ids,
+            GROUP_CONCAT(DISTINCT os.device_type SEPARATOR ',') as device_types,
+            MAX(os.created_at) as created_at,
+            MAX(u.nome) as usuario_nome,
+            MAX(u.email) as usuario_email,
+            MAX(u.role) as usuario_role,
+            MAX(c.nome) as colaborador_nome,
+            COUNT(os.id) as total_dispositivos
+        FROM onesignal_subscriptions os
+        LEFT JOIN usuarios u ON os.usuario_id = u.id
+        LEFT JOIN colaboradores c ON os.colaborador_id = c.id
+        WHERE 1=1 {$whereClause}
+        GROUP BY COALESCE(os.usuario_id, 0), COALESCE(os.colaborador_id, 0)
+        ORDER BY MAX(os.created_at) DESC
+    ";
 
-// Conta total de usuários únicos
-$stmt_count = $pdo->query("
-    SELECT COUNT(DISTINCT CONCAT(COALESCE(usuario_id, 0), '-', COALESCE(colaborador_id, 0))) as total 
-    FROM onesignal_subscriptions
-");
-$total_usuarios = $stmt_count->fetch()['total'] ?? 0;
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $subscriptions = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log('Erro na query de subscriptions: ' . $e->getMessage());
+        $subscriptions = [];
+        $error = 'Erro ao carregar lista de usuários: ' . $e->getMessage();
+    }
+}
+
+// Conta total de usuários únicos (só se não houver erro)
+if (empty($error)) {
+    try {
+        $stmt_count = $pdo->query("
+            SELECT COUNT(DISTINCT CONCAT(COALESCE(usuario_id, 0), '-', COALESCE(colaborador_id, 0))) as total 
+            FROM onesignal_subscriptions
+        ");
+        $total_usuarios = $stmt_count->fetch()['total'] ?? 0;
+    } catch (PDOException $e) {
+        error_log('Erro ao contar subscriptions: ' . $e->getMessage());
+        $total_usuarios = 0;
+    }
+}
 
 $page_title = 'Enviar Notificação Push';
 include __DIR__ . '/../includes/header.php';
