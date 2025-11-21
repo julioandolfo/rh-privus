@@ -1,0 +1,25 @@
+# Composer
+/vendor/
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Uploads (se necessário manter privado)
+# /uploads/
+
+# Configurações locais
+config/db.local.php
+

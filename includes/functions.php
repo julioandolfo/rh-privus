@@ -3,6 +3,11 @@
  * Funções Auxiliares do Sistema
  */
 
+// Carrega o autoloader do Composer (apenas uma vez)
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
 /**
  * Conecta ao banco de dados
  */

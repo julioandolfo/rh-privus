@@ -558,14 +558,14 @@
             flex-direction: column !important;
         }
         
-        /* Garantir largura consistente do aside em desktop */
+        /* Garantir largura consistente do aside em desktop 
         @media (min-width: 992px) {
             #kt_aside {
                 width: 265px !important;
                 min-width: 265px !important;
                 max-width: 265px !important;
             }
-        }
+        }*/
         
         /* Em mobile, garantir altura correta do drawer */
         @media (max-width: 991.98px) {
