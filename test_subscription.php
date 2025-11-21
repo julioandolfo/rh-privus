@@ -227,15 +227,31 @@ $usuario = $_SESSION['usuario'];
             }, 2000);
         });
         
-        // Intercepta logs do OneSignalInit
+        // Intercepta logs do OneSignalInit (sem loop)
+        let isLogging = false;
         const originalLog = console.log;
         console.log = function(...args) {
+            // Chama o log original primeiro
+            originalLog.apply(console, args);
+            
+            // Evita loop infinito
+            if (isLogging) {
+                return;
+            }
+            
+            // Só intercepta se for string e contiver palavras-chave
             if (args[0] && typeof args[0] === 'string') {
-                if (args[0].includes('OneSignal') || args[0].includes('Player') || args[0].includes('subscription')) {
-                    log(args.join(' '), 'info');
+                const message = args[0];
+                if (message.includes('OneSignal') || message.includes('Player') || message.includes('subscription') || 
+                    message.includes('✅') || message.includes('❌') || message.includes('⚠️') || message.includes('📱')) {
+                    isLogging = true;
+                    try {
+                        log(message, 'info');
+                    } finally {
+                        isLogging = false;
+                    }
                 }
             }
-            originalLog.apply(console, args);
         };
     </script>
 </body>

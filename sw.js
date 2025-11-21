@@ -59,8 +59,21 @@ self.addEventListener('activate', (event) => {
 
 // Interceptação de requisições (cache)
 self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+  
+  // Ignora requisições que não são HTTP/HTTPS (chrome-extension, data:, etc)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return; // Não faz cache, deixa o browser lidar normalmente
+  }
+  
+  // Ignora requisições de API e OneSignal (não devem ser cacheadas)
+  if (url.pathname.includes('/api/') || url.pathname.includes('onesignal.com')) {
+    return fetch(request);
+  }
+  
   event.respondWith(
-    caches.match(event.request)
+    caches.match(request)
       .then((response) => {
         // Cache hit - retorna resposta do cache
         if (response) {
@@ -68,23 +81,38 @@ self.addEventListener('fetch', (event) => {
         }
         
         // Clone da requisição
-        const fetchRequest = event.request.clone();
+        const fetchRequest = request.clone();
         
         return fetch(fetchRequest).then((response) => {
-          // Verifica se resposta é válida
+          // Verifica se resposta é válida e pode ser cacheada
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
+          }
+          
+          // Verifica novamente se é uma URL válida para cache
+          const responseUrl = new URL(response.url);
+          if (responseUrl.protocol !== 'http:' && responseUrl.protocol !== 'https:') {
+            return response; // Não faz cache
           }
           
           // Clone da resposta
           const responseToCache = response.clone();
           
+          // Tenta fazer cache, mas ignora erros
           caches.open(CACHE_NAME)
             .then((cache) => {
-              cache.put(event.request, responseToCache);
+              cache.put(request, responseToCache).catch((err) => {
+                console.warn('Erro ao fazer cache:', err);
+              });
+            })
+            .catch((err) => {
+              console.warn('Erro ao abrir cache:', err);
             });
           
           return response;
+        }).catch((error) => {
+          console.warn('Erro no fetch:', error);
+          return fetch(request); // Fallback para fetch normal
         });
       })
   );
