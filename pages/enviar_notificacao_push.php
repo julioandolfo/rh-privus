@@ -63,6 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_notificacao'])
             }
         } catch (Exception $e) {
             $error = 'Erro ao enviar notificação: ' . $e->getMessage();
+            error_log('Erro ao enviar push notification: ' . $e->getMessage());
+            error_log('Stack trace: ' . $e->getTraceAsString());
         }
     }
 }
@@ -472,10 +474,30 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
 <script>
 // Inicializa DataTables após jQuery estar carregado (no footer)
 (function() {
+    'use strict';
+    
     var dataTableInstance = null;
+    var initialized = false;
     
     function initDataTable() {
-        if (typeof jQuery !== 'undefined' && jQuery('#kt_notificacoes_table').length) {
+        // Verifica se jQuery está disponível
+        if (typeof window.jQuery === 'undefined' && typeof window.$ === 'undefined') {
+            return false;
+        }
+        
+        // Usa jQuery ou $ (se disponível)
+        var $ = window.jQuery || window.$;
+        
+        if (!$ || !$('#kt_notificacoes_table').length) {
+            return false;
+        }
+        
+        // Evita inicialização duplicada
+        if (initialized) {
+            return true;
+        }
+        
+        try {
             // Destrói instância anterior se existir
             if (dataTableInstance) {
                 try {
@@ -487,8 +509,8 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
             }
             
             // Verifica se já foi inicializado
-            if (!jQuery('#kt_notificacoes_table').hasClass('dataTable')) {
-                dataTableInstance = jQuery('#kt_notificacoes_table').DataTable({
+            if (!$('#kt_notificacoes_table').hasClass('dataTable')) {
+                dataTableInstance = $('#kt_notificacoes_table').DataTable({
                     language: {
                         url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
                     },
@@ -500,36 +522,61 @@ document.getElementById('modal_enviar_notificacao').addEventListener('hidden.bs.
                     ],
                     dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
                 });
+                initialized = true;
+                return true;
             }
-        } else if (typeof jQuery === 'undefined') {
-            // Se jQuery ainda não estiver disponível, tenta novamente
-            setTimeout(initDataTable, 50);
+        } catch (e) {
+            console.error('Erro ao inicializar DataTable:', e);
+            return false;
+        }
+        
+        return false;
+    }
+    
+    // Função para aguardar jQuery
+    function waitForJQuery(callback) {
+        if (typeof window.jQuery !== 'undefined' || typeof window.$ !== 'undefined') {
+            callback();
+        } else {
+            var attempts = 0;
+            var maxAttempts = 100; // 5 segundos (50ms * 100)
+            var checkInterval = setInterval(function() {
+                attempts++;
+                if (typeof window.jQuery !== 'undefined' || typeof window.$ !== 'undefined') {
+                    clearInterval(checkInterval);
+                    callback();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.error('jQuery não foi carregado após 5 segundos');
+                }
+            }, 50);
         }
     }
     
-    // Aguarda jQuery estar disponível
-    if (typeof jQuery !== 'undefined') {
-        jQuery(document).ready(function() {
-            // Pequeno delay para garantir que o DOM está completamente renderizado
-            setTimeout(initDataTable, 100);
-        });
-    } else {
-        // Tenta até jQuery estar disponível (máximo 5 segundos)
-        var attempts = 0;
-        var checkJQuery = setInterval(function() {
-            attempts++;
-            if (typeof jQuery !== 'undefined') {
-                clearInterval(checkJQuery);
-                jQuery(document).ready(function() {
-                    setTimeout(initDataTable, 100);
+    // Aguarda jQuery e DOM estarem prontos
+    waitForJQuery(function() {
+        var $ = window.jQuery || window.$;
+        if ($ && typeof $.fn.DataTable !== 'undefined') {
+            $(document).ready(function() {
+                // Pequeno delay para garantir que o DOM está completamente renderizado
+                setTimeout(function() {
+                    initDataTable();
+                }, 200);
+            });
+        } else {
+            // Se DataTables não estiver disponível, tenta novamente
+            setTimeout(function() {
+                waitForJQuery(function() {
+                    var $ = window.jQuery || window.$;
+                    if ($ && typeof $.fn.DataTable !== 'undefined') {
+                        $(document).ready(function() {
+                            setTimeout(initDataTable, 200);
+                        });
+                    }
                 });
-            } else if (attempts > 100) {
-                // Timeout após 5 segundos (50ms * 100)
-                clearInterval(checkJQuery);
-                console.error('jQuery não foi carregado após 5 segundos');
-            }
-        }, 50);
-    }
+            }, 500);
+        }
+    });
 })();
 </script>
 

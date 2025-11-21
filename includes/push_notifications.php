@@ -69,8 +69,11 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
             throw new Exception('Erro cURL: ' . $curlError);
         }
         
-        if ($httpCode === 200) {
+        if ($httpCode === 200 || $httpCode === 201) {
             $data = json_decode($response, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Erro ao decodificar resposta: ' . json_last_error_msg());
+            }
             return [
                 'success' => true,
                 'enviadas' => $data['enviadas'] ?? 0,
@@ -78,10 +81,16 @@ function enviar_push_colaborador($colaborador_id, $titulo, $mensagem, $url = nul
             ];
         } else {
             $error = json_decode($response, true);
+            $errorMessage = 'Erro ao enviar notificação';
+            if (isset($error['message'])) {
+                $errorMessage = $error['message'];
+            } elseif (isset($error['errors']) && is_array($error['errors']) && !empty($error['errors'])) {
+                $errorMessage = is_array($error['errors'][0]) ? ($error['errors'][0]['message'] ?? $errorMessage) : $error['errors'][0];
+            }
             return [
                 'success' => false,
                 'enviadas' => 0,
-                'message' => $error['message'] ?? 'Erro ao enviar notificação'
+                'message' => $errorMessage . ' (HTTP ' . $httpCode . ')'
             ];
         }
         
@@ -149,8 +158,11 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
             throw new Exception('Erro cURL: ' . $curlError);
         }
         
-        if ($httpCode === 200) {
+        if ($httpCode === 200 || $httpCode === 201) {
             $data = json_decode($response, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Erro ao decodificar resposta: ' . json_last_error_msg());
+            }
             return [
                 'success' => true,
                 'enviadas' => $data['enviadas'] ?? 0,
@@ -158,10 +170,16 @@ function enviar_push_usuario($usuario_id, $titulo, $mensagem, $url = null) {
             ];
         } else {
             $error = json_decode($response, true);
+            $errorMessage = 'Erro ao enviar notificação';
+            if (isset($error['message'])) {
+                $errorMessage = $error['message'];
+            } elseif (isset($error['errors']) && is_array($error['errors']) && !empty($error['errors'])) {
+                $errorMessage = is_array($error['errors'][0]) ? ($error['errors'][0]['message'] ?? $errorMessage) : $error['errors'][0];
+            }
             return [
                 'success' => false,
                 'enviadas' => 0,
-                'message' => $error['message'] ?? 'Erro ao enviar notificação'
+                'message' => $errorMessage . ' (HTTP ' . $httpCode . ')'
             ];
         }
         

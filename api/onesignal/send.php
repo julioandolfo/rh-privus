@@ -93,6 +93,18 @@ try {
         $url = $baseUrl . '/' . ltrim($url, '/');
     }
     
+    // Prepara ícone completo
+    if (!empty($icone)) {
+        if (strpos($icone, 'http') !== 0) {
+            $icone = $baseUrl . '/' . ltrim($icone, '/');
+        }
+    } else {
+        $icone = $baseUrl . $basePath . '/assets/media/logos/favicon.png';
+    }
+    
+    // Prepara badge
+    $badge = $baseUrl . $basePath . '/assets/media/logos/favicon.png';
+    
     // Envia notificação via OneSignal REST API
     $ch = curl_init('https://onesignal.com/api/v1/notifications');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -108,8 +120,8 @@ try {
         'headings' => ['pt' => $titulo],
         'contents' => ['pt' => $mensagem],
         'url' => $url,
-        'chrome_web_icon' => $baseUrl . $icone,
-        'chrome_web_badge' => $baseUrl . $basePath . '/assets/media/logos/favicon.png'
+        'chrome_web_icon' => $icone,
+        'chrome_web_badge' => $badge
     ];
     
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
@@ -119,16 +131,30 @@ try {
     $curlError = curl_error($ch);
     curl_close($ch);
     
-    if ($httpCode === 200) {
+    if ($curlError) {
+        throw new Exception('Erro cURL: ' . $curlError);
+    }
+    
+    if ($httpCode === 200 || $httpCode === 201) {
         $result = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Erro ao decodificar resposta do OneSignal: ' . json_last_error_msg());
+        }
         echo json_encode([
             'success' => true,
             'enviadas' => count($subscriptions),
-            'onesignal_id' => $result['id'] ?? null
+            'onesignal_id' => $result['id'] ?? null,
+            'response' => $result
         ]);
     } else {
         $error = json_decode($response, true);
-        throw new Exception($error['errors'][0] ?? 'Erro ao enviar notificação');
+        $errorMessage = 'Erro ao enviar notificação';
+        if (isset($error['errors']) && is_array($error['errors']) && !empty($error['errors'])) {
+            $errorMessage = is_array($error['errors'][0]) ? ($error['errors'][0]['message'] ?? $errorMessage) : $error['errors'][0];
+        } elseif (isset($error['message'])) {
+            $errorMessage = $error['message'];
+        }
+        throw new Exception($errorMessage . ' (HTTP ' . $httpCode . ')');
     }
     
 } catch (Exception $e) {
