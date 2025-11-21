@@ -25,6 +25,11 @@
     <script src="../assets/js/scripts.bundle.js"></script>
     <!--end::Global Javascript Bundle-->
     
+    <!--begin::OneSignal SDK-->
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
+    <script src="../assets/js/onesignal-init.js"></script>
+    <!--end::OneSignal SDK-->
+    
     <!--begin::Custom Javascript-->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <!--end::Custom Javascript-->

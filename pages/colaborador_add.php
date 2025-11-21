@@ -87,6 +87,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             !empty($estado_endereco) ? $estado_endereco : null, $observacoes, $foto_path, $senha_hash
         ]);
         
+        $colaborador_id = $pdo->lastInsertId();
+        
+        // Envia email de boas-vindas se template estiver ativo
+        if (!empty($email_pessoal)) {
+            require_once __DIR__ . '/../includes/email_templates.php';
+            enviar_email_novo_colaborador($colaborador_id);
+        }
+        
         redirect('colaboradores.php', 'Colaborador cadastrado com sucesso!');
     } catch (PDOException $e) {
         redirect('colaborador_add.php', 'Erro ao cadastrar: ' . $e->getMessage(), 'error');

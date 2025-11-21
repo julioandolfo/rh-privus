@@ -25,8 +25,8 @@ if (empty($empresa_id)) {
     exit;
 }
 
-// Verifica permissão
-if ($usuario['role'] !== 'ADMIN' && $usuario['empresa_id'] != $empresa_id) {
+// Verifica permissão usando função de autenticação
+if (!can_access_empresa($empresa_id)) {
     echo json_encode([]);
     exit;
 }

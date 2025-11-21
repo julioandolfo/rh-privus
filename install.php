@@ -182,22 +182,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INDEX idx_status (status)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             
+            -- Tabela de relacionamento usuários-empresas (muitos-para-muitos)
+            CREATE TABLE IF NOT EXISTS usuarios_empresas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NOT NULL,
+                empresa_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+                UNIQUE KEY uk_usuario_empresa (usuario_id, empresa_id),
+                INDEX idx_usuario (usuario_id),
+                INDEX idx_empresa (empresa_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Tabela de tipos de ocorrências
+            CREATE TABLE IF NOT EXISTS tipos_ocorrencias (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(100) NOT NULL,
+                codigo VARCHAR(50) UNIQUE NOT NULL,
+                categoria ENUM('pontualidade', 'comportamento', 'desempenho', 'outros') DEFAULT 'outros',
+                permite_tempo_atraso BOOLEAN DEFAULT FALSE,
+                permite_tipo_ponto BOOLEAN DEFAULT FALSE,
+                status ENUM('ativo', 'inativo') DEFAULT 'ativo',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_codigo (codigo),
+                INDEX idx_categoria (categoria),
+                INDEX idx_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Inserir tipos padrão de ocorrências
+            INSERT INTO tipos_ocorrencias (nome, codigo, categoria, permite_tempo_atraso, permite_tipo_ponto, status) VALUES
+            ('Atraso na Entrada', 'atraso_entrada', 'pontualidade', TRUE, TRUE, 'ativo'),
+            ('Atraso no Retorno do Almoço', 'atraso_almoco', 'pontualidade', TRUE, TRUE, 'ativo'),
+            ('Atraso no Retorno do Café', 'atraso_cafe', 'pontualidade', TRUE, TRUE, 'ativo'),
+            ('Saída Antecipada', 'saida_antecipada', 'pontualidade', FALSE, TRUE, 'ativo'),
+            ('Falta', 'falta', 'pontualidade', FALSE, FALSE, 'ativo'),
+            ('Ausência Injustificada', 'ausencia_injustificada', 'pontualidade', FALSE, FALSE, 'ativo'),
+            ('Falha Operacional', 'falha_operacional', 'desempenho', FALSE, FALSE, 'ativo'),
+            ('Desempenho Baixo', 'desempenho_baixo', 'desempenho', FALSE, FALSE, 'ativo'),
+            ('Comportamento Inadequado', 'comportamento_inadequado', 'comportamento', FALSE, FALSE, 'ativo'),
+            ('Advertência', 'advertencia', 'comportamento', FALSE, FALSE, 'ativo'),
+            ('Elogio', 'elogio', 'outros', FALSE, FALSE, 'ativo');
+            
             -- Tabela de ocorrências
             CREATE TABLE IF NOT EXISTS ocorrencias (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 colaborador_id INT NOT NULL,
                 usuario_id INT NOT NULL,
                 tipo VARCHAR(100) NOT NULL,
+                tipo_ocorrencia_id INT NULL,
+                tempo_atraso_minutos INT NULL,
+                tipo_ponto ENUM('entrada', 'almoco', 'cafe', 'saida') NULL,
                 descricao LONGTEXT,
                 data_ocorrencia DATE NOT NULL,
+                hora_ocorrencia TIME NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (colaborador_id) REFERENCES colaboradores(id) ON DELETE CASCADE,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE RESTRICT,
+                FOREIGN KEY (tipo_ocorrencia_id) REFERENCES tipos_ocorrencias(id) ON DELETE SET NULL,
                 INDEX idx_colaborador (colaborador_id),
                 INDEX idx_usuario (usuario_id),
                 INDEX idx_data (data_ocorrencia),
-                INDEX idx_tipo (tipo)
+                INDEX idx_tipo (tipo),
+                INDEX idx_tipo_ocorrencia (tipo_ocorrencia_id),
+                INDEX idx_tipo_ponto (tipo_ponto)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             
             -- Tabela de promoções/salários
@@ -280,6 +330,128 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INDEX idx_colaborador (colaborador_id),
                 UNIQUE KEY uk_fechamento_colaborador (fechamento_id, colaborador_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Tabela de tipos de bônus
+            CREATE TABLE IF NOT EXISTS tipos_bonus (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(100) NOT NULL,
+                descricao TEXT NULL,
+                status ENUM('ativo', 'inativo') DEFAULT 'ativo',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_nome (nome)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Inserir tipos de bônus padrão
+            INSERT INTO tipos_bonus (nome, descricao, status) VALUES
+            ('Vale Transporte', 'Auxílio transporte para deslocamento', 'ativo'),
+            ('Vale Alimentação', 'Auxílio alimentação', 'ativo'),
+            ('Vale Refeição', 'Auxílio refeição', 'ativo'),
+            ('Plano de Saúde', 'Auxílio plano de saúde', 'ativo'),
+            ('Bônus', 'Bônus variável', 'ativo');
+            
+            -- Tabela de bônus dos colaboradores
+            CREATE TABLE IF NOT EXISTS colaboradores_bonus (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                colaborador_id INT NOT NULL,
+                tipo_bonus_id INT NOT NULL,
+                valor DECIMAL(10,2) NOT NULL,
+                data_inicio DATE NULL,
+                data_fim DATE NULL,
+                observacoes TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (colaborador_id) REFERENCES colaboradores(id) ON DELETE CASCADE,
+                FOREIGN KEY (tipo_bonus_id) REFERENCES tipos_bonus(id) ON DELETE RESTRICT,
+                INDEX idx_colaborador (colaborador_id),
+                INDEX idx_tipo_bonus (tipo_bonus_id),
+                INDEX idx_data_inicio (data_inicio),
+                INDEX idx_data_fim (data_fim)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Tabela de itens de bônus no fechamento de pagamentos
+            CREATE TABLE IF NOT EXISTS fechamentos_pagamento_bonus (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                fechamento_pagamento_id INT NOT NULL,
+                colaborador_id INT NOT NULL,
+                tipo_bonus_id INT NOT NULL,
+                valor DECIMAL(10,2) NOT NULL,
+                observacoes TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (fechamento_pagamento_id) REFERENCES fechamentos_pagamento(id) ON DELETE CASCADE,
+                FOREIGN KEY (colaborador_id) REFERENCES colaboradores(id) ON DELETE CASCADE,
+                FOREIGN KEY (tipo_bonus_id) REFERENCES tipos_bonus(id) ON DELETE RESTRICT,
+                INDEX idx_fechamento (fechamento_pagamento_id),
+                INDEX idx_colaborador (colaborador_id),
+                INDEX idx_tipo_bonus (tipo_bonus_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Tabela de configurações de email
+            CREATE TABLE IF NOT EXISTS configuracoes_email (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                smtp_host VARCHAR(255) NOT NULL DEFAULT 'smtp.gmail.com',
+                smtp_port INT NOT NULL DEFAULT 587,
+                smtp_secure ENUM('tls', 'ssl') NOT NULL DEFAULT 'tls',
+                smtp_auth TINYINT(1) NOT NULL DEFAULT 1,
+                smtp_username VARCHAR(255) NOT NULL DEFAULT '',
+                smtp_password VARCHAR(255) NOT NULL DEFAULT '',
+                from_email VARCHAR(255) NOT NULL DEFAULT 'noreply@privus.com.br',
+                from_name VARCHAR(255) NOT NULL DEFAULT 'RH Privus',
+                smtp_debug TINYINT(1) NOT NULL DEFAULT 0,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                updated_by INT NULL,
+                FOREIGN KEY (updated_by) REFERENCES usuarios(id) ON DELETE SET NULL,
+                UNIQUE KEY uk_config_email (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Insere registro padrão de configurações de email
+            INSERT INTO configuracoes_email (id, smtp_host, smtp_port, smtp_secure, smtp_auth, smtp_username, smtp_password, from_email, from_name, smtp_debug)
+            VALUES (1, 'smtp.gmail.com', 587, 'tls', 1, '', '', 'noreply@privus.com.br', 'RH Privus', 0);
+            
+            -- Tabela de templates de email
+            CREATE TABLE IF NOT EXISTS email_templates (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                codigo VARCHAR(50) UNIQUE NOT NULL COMMENT 'Código único do template (ex: novo_colaborador)',
+                nome VARCHAR(255) NOT NULL COMMENT 'Nome descritivo do template',
+                assunto VARCHAR(255) NOT NULL COMMENT 'Assunto do email (pode conter variáveis)',
+                corpo_html LONGTEXT NOT NULL COMMENT 'Corpo do email em HTML (pode conter variáveis)',
+                corpo_texto TEXT NULL COMMENT 'Versão texto do email (opcional)',
+                ativo TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'Se o template está ativo',
+                variaveis_disponiveis TEXT NULL COMMENT 'JSON com lista de variáveis disponíveis',
+                descricao TEXT NULL COMMENT 'Descrição do template e quando é usado',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_codigo (codigo),
+                INDEX idx_ativo (ativo)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            
+            -- Insere templates padrão
+            INSERT INTO email_templates (codigo, nome, assunto, corpo_html, corpo_texto, ativo, variaveis_disponiveis, descricao) VALUES
+            ('novo_colaborador', 'Novo Colaborador', 'Bem-vindo ao {empresa_nome}!', 
+            '<h2>Olá {nome_completo}!</h2><p>Bem-vindo ao <strong>{empresa_nome}</strong>!</p><p>Estamos felizes em tê-lo(a) em nossa equipe.</p><p><strong>Dados do seu cadastro:</strong></p><ul><li><strong>Cargo:</strong> {cargo_nome}</li><li><strong>Setor:</strong> {setor_nome}</li><li><strong>Data de Início:</strong> {data_inicio}</li><li><strong>Tipo de Contrato:</strong> {tipo_contrato}</li></ul><p>Bem-vindo(a)!</p>',
+            'Olá {nome_completo}!\\n\\nBem-vindo ao {empresa_nome}!\\n\\nDados: Cargo: {cargo_nome}, Setor: {setor_nome}, Data: {data_inicio}',
+            1,
+            '[\"nome_completo\", \"empresa_nome\", \"cargo_nome\", \"setor_nome\", \"data_inicio\", \"tipo_contrato\", \"cpf\", \"email_pessoal\", \"telefone\"]',
+            'Enviado quando um novo colaborador é cadastrado.'),
+            ('nova_promocao', 'Nova Promoção', 'Parabéns! Você recebeu uma promoção!',
+            '<h2>Parabéns, {nome_completo}!</h2><p>Temos o prazer de informar que você recebeu uma promoção!</p><p><strong>Detalhes:</strong></p><ul><li><strong>Data:</strong> {data_promocao}</li><li><strong>Salário Anterior:</strong> R$ {salario_anterior}</li><li><strong>Novo Salário:</strong> R$ {salario_novo}</li><li><strong>Motivo:</strong> {motivo}</li></ul><p>Parabéns!</p>',
+            'Parabéns, {nome_completo}!\\n\\nVocê recebeu uma promoção!\\nData: {data_promocao}\\nNovo Salário: R$ {salario_novo}',
+            1,
+            '[\"nome_completo\", \"data_promocao\", \"salario_anterior\", \"salario_novo\", \"motivo\", \"observacoes\", \"empresa_nome\"]',
+            'Enviado quando uma promoção é registrada.'),
+            ('fechamento_pagamento', 'Fechamento de Pagamento', 'Seu pagamento de {mes_referencia} está disponível',
+            '<h2>Olá {nome_completo}!</h2><p>Informamos que o fechamento do pagamento referente ao mês de <strong>{mes_referencia}</strong> está disponível.</p><p><strong>Resumo:</strong></p><ul><li><strong>Salário Base:</strong> R$ {salario_base}</li><li><strong>Horas Extras:</strong> {horas_extras} horas - R$ {valor_horas_extras}</li><li><strong>Valor Total:</strong> R$ {valor_total}</li></ul>',
+            'Olá {nome_completo}!\\n\\nFechamento do mês {mes_referencia} disponível.\\nValor Total: R$ {valor_total}',
+            1,
+            '[\"nome_completo\", \"mes_referencia\", \"salario_base\", \"horas_extras\", \"valor_horas_extras\", \"descontos\", \"adicionais\", \"valor_total\", \"data_fechamento\", \"observacoes\"]',
+            'Enviado para cada colaborador quando um fechamento é realizado.'),
+            ('ocorrencia', 'Ocorrência Registrada', 'Ocorrência registrada - {tipo_ocorrencia}',
+            '<h2>Olá {nome_completo}!</h2><p>Informamos que foi registrada uma ocorrência em seu nome.</p><p><strong>Detalhes:</strong></p><ul><li><strong>Tipo:</strong> {tipo_ocorrencia}</li><li><strong>Data:</strong> {data_ocorrencia}</li><li><strong>Descrição:</strong> {descricao}</li></ul>',
+            'Olá {nome_completo}!\\n\\nOcorrência registrada:\\nTipo: {tipo_ocorrencia}\\nData: {data_ocorrencia}',
+            1,
+            '[\"nome_completo\", \"tipo_ocorrencia\", \"data_ocorrencia\", \"hora_ocorrencia\", \"tempo_atraso\", \"descricao\", \"usuario_registro\", \"data_registro\", \"empresa_nome\", \"setor_nome\", \"cargo_nome\"]',
+            'Enviado quando uma ocorrência é registrada para um colaborador.');
             ";
             
             // Executa o SQL

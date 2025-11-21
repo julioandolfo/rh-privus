@@ -28,6 +28,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = getDB();
             
+            // Verifica e cria a tabela usuarios_empresas se não existir
+            try {
+                $stmt_check = $pdo->query("SHOW TABLES LIKE 'usuarios_empresas'");
+                if ($stmt_check->rowCount() == 0) {
+                    // Cria tabela de relacionamento muitos-para-muitos
+                    $pdo->exec("
+                        CREATE TABLE usuarios_empresas (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            usuario_id INT NOT NULL,
+                            empresa_id INT NOT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                            FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+                            UNIQUE KEY uk_usuario_empresa (usuario_id, empresa_id),
+                            INDEX idx_usuario (usuario_id),
+                            INDEX idx_empresa (empresa_id)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    ");
+                    
+                    // Migra dados existentes da coluna empresa_id para a nova tabela
+                    $pdo->exec("
+                        INSERT INTO usuarios_empresas (usuario_id, empresa_id)
+                        SELECT id, empresa_id 
+                        FROM usuarios 
+                        WHERE empresa_id IS NOT NULL
+                    ");
+                }
+            } catch (PDOException $e) {
+                // Ignora erro se a tabela já existir
+            }
+            
             // Tenta login como usuário do sistema primeiro
             $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ? AND status = 'ativo'");
             $stmt->execute([$email]);
@@ -38,13 +69,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("UPDATE usuarios SET ultimo_login = NOW() WHERE id = ?");
                 $stmt->execute([$usuario['id']]);
                 
+                // Busca empresas do usuário
+                $stmt_empresas = $pdo->prepare("
+                    SELECT empresa_id 
+                    FROM usuarios_empresas 
+                    WHERE usuario_id = ?
+                ");
+                $stmt_empresas->execute([$usuario['id']]);
+                $empresas_ids = $stmt_empresas->fetchAll(PDO::FETCH_COLUMN);
+                
                 // Cria sessão
                 $_SESSION['usuario'] = [
                     'id' => $usuario['id'],
                     'nome' => $usuario['nome'],
                     'email' => $usuario['email'],
                     'role' => $usuario['role'],
-                    'empresa_id' => $usuario['empresa_id'],
+                    'empresa_id' => $usuario['empresa_id'], // Mantém para compatibilidade
+                    'empresas_ids' => $empresas_ids, // Array com IDs das empresas
                     'setor_id' => $usuario['setor_id'] ?? null,
                     'colaborador_id' => $usuario['colaborador_id']
                 ];
@@ -72,12 +113,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt->execute([$colaborador['usuario_id']]);
                         $usuario = $stmt->fetch();
                         
+                        // Busca empresas do usuário
+                        $stmt_empresas = $pdo->prepare("
+                            SELECT empresa_id 
+                            FROM usuarios_empresas 
+                            WHERE usuario_id = ?
+                        ");
+                        $stmt_empresas->execute([$usuario['id']]);
+                        $empresas_ids = $stmt_empresas->fetchAll(PDO::FETCH_COLUMN);
+                        
                         $_SESSION['usuario'] = [
                             'id' => $usuario['id'],
                             'nome' => $usuario['nome'],
                             'email' => $usuario['email'],
                             'role' => $usuario['role'],
-                            'empresa_id' => $usuario['empresa_id'],
+                            'empresa_id' => $usuario['empresa_id'], // Mantém para compatibilidade
+                            'empresas_ids' => $empresas_ids, // Array com IDs das empresas
                             'setor_id' => $usuario['setor_id'] ?? null,
                             'colaborador_id' => $colaborador['id']
                         ];
@@ -115,6 +166,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="canonical" href="https://preview.keenthemes.com/metronic8" />
     <link rel="shortcut icon" href="assets/media/logos/favicon.png" />
+    
+    <!--begin::PWA Manifest-->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#009ef7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RH Privus">
+    <link rel="apple-touch-icon" href="assets/media/logos/favicon.png">
+    <!--end::PWA Manifest-->
     
     <!--begin::Fonts-->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" />
@@ -235,6 +295,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/plugins/global/plugins.bundle.js"></script>
     <script src="assets/js/scripts.bundle.js"></script>
     <!--end::Global Javascript Bundle-->
+    
+    <!--begin::OneSignal SDK-->
+    <script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
+    <script src="assets/js/onesignal-init.js"></script>
+    <!--end::OneSignal SDK-->
     
     <script>
         // Loading no botão de login

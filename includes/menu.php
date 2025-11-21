@@ -26,6 +26,8 @@ function getIcon($name) {
         'file' => 'file-up',
         'person' => 'profile-user',
         'gear' => 'setting-2',
+        'email' => 'sms',
+        'notification' => 'notification-status',
     ];
     return $icons[$name] ?? 'element-11';
 }
@@ -320,6 +322,47 @@ function getIcon($name) {
                             </span>
                             <span class="menu-title">Usuários</span>
                         </a>
+                    </div>
+                    <!--end:Menu item-->
+                    
+                    <!--begin:Menu item-->
+                    <div data-kt-menu-trigger="click" class="menu-item menu-accordion <?= (isActive('configuracoes_email.php') || isActive('configuracoes_onesignal.php')) ? 'here show' : '' ?>">
+                        <!--begin:Menu link-->
+                        <span class="menu-link">
+                            <span class="menu-icon">
+                                <i class="ki-duotone ki-<?= getIcon('gear') ?> fs-2">
+                                    <span class="path1"></span>
+                                    <span class="path2"></span>
+                                </i>
+                            </span>
+                            <span class="menu-title">Configurações</span>
+                            <span class="menu-arrow"></span>
+                        </span>
+                        <!--end:Menu link-->
+                        <!--begin:Menu sub-->
+                        <div class="menu-sub menu-sub-accordion">
+                            <!--begin:Menu item-->
+                            <div class="menu-item">
+                                <a class="menu-link <?= isActive('configuracoes_email.php') ?>" href="configuracoes_email.php">
+                                    <span class="menu-bullet">
+                                        <span class="bullet bullet-dot"></span>
+                                    </span>
+                                    <span class="menu-title">Configurações de Email</span>
+                                </a>
+                            </div>
+                            <!--end:Menu item-->
+                            <!--begin:Menu item-->
+                            <div class="menu-item">
+                                <a class="menu-link <?= isActive('configuracoes_onesignal.php') ?>" href="configuracoes_onesignal.php">
+                                    <span class="menu-bullet">
+                                        <span class="bullet bullet-dot"></span>
+                                    </span>
+                                    <span class="menu-title">Configuração OneSignal</span>
+                                </a>
+                            </div>
+                            <!--end:Menu item-->
+                        </div>
+                        <!--end:Menu sub-->
                     </div>
                     <!--end:Menu item-->
                 <?php endif; ?>

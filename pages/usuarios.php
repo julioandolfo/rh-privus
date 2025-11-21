@@ -16,6 +16,38 @@ if (!check_permission('ADMIN')) {
 
 $pdo = getDB();
 
+// Verifica e cria a tabela usuarios_empresas se não existir
+try {
+    $stmt = $pdo->query("SHOW TABLES LIKE 'usuarios_empresas'");
+    if ($stmt->rowCount() == 0) {
+        // Cria tabela de relacionamento muitos-para-muitos
+        $pdo->exec("
+            CREATE TABLE usuarios_empresas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NOT NULL,
+                empresa_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+                UNIQUE KEY uk_usuario_empresa (usuario_id, empresa_id),
+                INDEX idx_usuario (usuario_id),
+                INDEX idx_empresa (empresa_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        
+        // Migra dados existentes da coluna empresa_id para a nova tabela
+        $pdo->exec("
+            INSERT INTO usuarios_empresas (usuario_id, empresa_id)
+            SELECT id, empresa_id 
+            FROM usuarios 
+            WHERE empresa_id IS NOT NULL
+        ");
+    }
+} catch (PDOException $e) {
+    // Ignora erro se a tabela já existir ou se houver problema de permissão
+    // O erro será capturado quando tentar usar a tabela
+}
+
 // Processa ações ANTES de incluir o header (para evitar erro de headers already sent)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -25,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = sanitize($_POST['email'] ?? '');
         $senha = $_POST['senha'] ?? '';
         $role = $_POST['role'] ?? '';
-        $empresa_id = $_POST['empresa_id'] ?? null;
+        $empresas = $_POST['empresas'] ?? [];
         $setor_id = $_POST['setor_id'] ?? null;
         $colaborador_id = $_POST['colaborador_id'] ?? null;
         $status = $_POST['status'] ?? 'ativo';
@@ -34,15 +66,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('usuarios.php', 'Preencha os campos obrigatórios!', 'error');
         }
         
-        // Se não for ADMIN, empresa_id é obrigatório
-        if ($role !== 'ADMIN' && empty($empresa_id)) {
-            redirect('usuarios.php', 'Empresa é obrigatória para este perfil!', 'error');
+        // Se não for ADMIN, pelo menos uma empresa é obrigatória
+        if ($role !== 'ADMIN' && empty($empresas)) {
+            redirect('usuarios.php', 'Selecione pelo menos uma empresa para este perfil!', 'error');
         }
         
         // Se for GESTOR, setor_id é obrigatório
         if ($role === 'GESTOR' && empty($setor_id)) {
             redirect('usuarios.php', 'Setor é obrigatório para Gestor!', 'error');
         }
+        
+        // Define empresa_id como primeira empresa selecionada (para compatibilidade)
+        $empresa_id = !empty($empresas) ? (int)$empresas[0] : null;
         
         try {
             if ($action === 'add') {
@@ -74,6 +109,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([$nome, $email, $senha_hash, $role, $empresa_id ?: null, $setor_id ?: null, $colaborador_id ?: null, $status, $foto_path]);
+                
+                $usuario_id = $pdo->lastInsertId();
+                
+                // Salva relacionamento com múltiplas empresas
+                if (!empty($empresas)) {
+                    $stmt_empresa = $pdo->prepare("INSERT INTO usuarios_empresas (usuario_id, empresa_id) VALUES (?, ?)");
+                    foreach ($empresas as $emp_id) {
+                        $stmt_empresa->execute([$usuario_id, (int)$emp_id]);
+                    }
+                }
+                
                 redirect('usuarios.php', 'Usuário cadastrado com sucesso!');
             } else {
                 $id = $_POST['id'] ?? 0;
@@ -122,6 +168,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ");
                     $stmt->execute([$nome, $email, $role, $empresa_id ?: null, $setor_id ?: null, $colaborador_id ?: null, $status, $foto_path, $id]);
                 }
+                
+                // Atualiza relacionamento com empresas
+                // Remove todas as empresas antigas
+                $stmt_delete = $pdo->prepare("DELETE FROM usuarios_empresas WHERE usuario_id = ?");
+                $stmt_delete->execute([$id]);
+                
+                // Insere as novas empresas
+                if (!empty($empresas)) {
+                    $stmt_empresa = $pdo->prepare("INSERT INTO usuarios_empresas (usuario_id, empresa_id) VALUES (?, ?)");
+                    foreach ($empresas as $emp_id) {
+                        $stmt_empresa->execute([$id, (int)$emp_id]);
+                    }
+                }
+                
                 redirect('usuarios.php', 'Usuário atualizado com sucesso!');
             }
         } catch (PDOException $e) {
@@ -145,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Busca usuários
+// Busca usuários com suas empresas
 $stmt = $pdo->query("
     SELECT u.*, 
            e.nome_fantasia as empresa_nome,
@@ -158,6 +218,20 @@ $stmt = $pdo->query("
     ORDER BY u.nome
 ");
 $usuarios = $stmt->fetchAll();
+
+// Busca empresas de cada usuário
+foreach ($usuarios as &$usuario) {
+    $stmt_empresas = $pdo->prepare("
+        SELECT e.id, e.nome_fantasia 
+        FROM usuarios_empresas ue
+        INNER JOIN empresas e ON ue.empresa_id = e.id
+        WHERE ue.usuario_id = ?
+        ORDER BY e.nome_fantasia
+    ");
+    $stmt_empresas->execute([$usuario['id']]);
+    $usuario['empresas'] = $stmt_empresas->fetchAll();
+}
+unset($usuario);
 
 // Busca empresas
 $stmt_empresas = $pdo->query("SELECT id, nome_fantasia FROM empresas WHERE status = 'ativo' ORDER BY nome_fantasia");
@@ -268,7 +342,18 @@ require_once __DIR__ . '/../includes/header.php';
                                 ?>
                                 <span class="badge <?= $badge_class ?>"><?= $user['role'] ?></span>
                             </td>
-                            <td><?= $user['empresa_nome'] ? htmlspecialchars($user['empresa_nome']) : '-' ?></td>
+                            <td>
+                                <?php 
+                                if (!empty($user['empresas'])) {
+                                    $nomes_empresas = array_map(function($e) { return htmlspecialchars($e['nome_fantasia']); }, $user['empresas']);
+                                    echo htmlspecialchars(implode(', ', $nomes_empresas));
+                                } elseif ($user['empresa_nome']) {
+                                    echo htmlspecialchars($user['empresa_nome']);
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
                             <td><?= $user['nome_setor'] ? htmlspecialchars($user['nome_setor']) : '-' ?></td>
                             <td><?= $user['colaborador_nome'] ? htmlspecialchars($user['colaborador_nome']) : '-' ?></td>
                             <td><?= $user['ultimo_login'] ? formatar_data($user['ultimo_login'], 'd/m/Y H:i') : 'Nunca' ?></td>
@@ -381,19 +466,28 @@ require_once __DIR__ . '/../includes/header.php';
                     
                     <div class="row mb-7">
                         <div class="col-md-6">
-                            <label class="fw-semibold fs-6 mb-2">Empresa</label>
-                            <select name="empresa_id" id="empresa_id" class="form-select form-select-solid">
-                                <option value="">Nenhuma (apenas ADMIN)</option>
+                            <label class="fw-semibold fs-6 mb-2">Empresas <span id="empresas_required"></span></label>
+                            <div class="form-control form-control-solid" style="min-height: 150px; max-height: 200px; overflow-y: auto; padding: 10px;">
                                 <?php foreach ($empresas as $emp): ?>
-                                <option value="<?= $emp['id'] ?>"><?= htmlspecialchars($emp['nome_fantasia']) ?></option>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="empresas[]" value="<?= $emp['id'] ?>" id="empresa_<?= $emp['id'] ?>" />
+                                    <label class="form-check-label" for="empresa_<?= $emp['id'] ?>">
+                                        <?= htmlspecialchars($emp['nome_fantasia']) ?>
+                                    </label>
+                                </div>
                                 <?php endforeach; ?>
-                            </select>
+                                <?php if (empty($empresas)): ?>
+                                <small class="text-muted">Nenhuma empresa cadastrada</small>
+                                <?php endif; ?>
+                            </div>
+                            <small class="text-muted">Selecione uma ou mais empresas. Para RH do grupo, selecione todas as empresas.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="fw-semibold fs-6 mb-2">Setor <span id="setor_required"></span></label>
                             <select name="setor_id" id="setor_id" class="form-select form-select-solid">
                                 <option value="">Selecione uma empresa primeiro</option>
                             </select>
+                            <small class="text-muted">Obrigatório apenas para Gestor</small>
                         </div>
                     </div>
                     
@@ -607,11 +701,31 @@ function editarUsuario(usuario) {
     document.getElementById('nome').value = usuario.nome || '';
     document.getElementById('email').value = usuario.email || '';
     document.getElementById('role').value = usuario.role || '';
-    document.getElementById('empresa_id').value = usuario.empresa_id || '';
     document.getElementById('colaborador_id').value = usuario.colaborador_id || '';
     document.getElementById('status').value = usuario.status || 'ativo';
     document.getElementById('senha').value = '';
     document.getElementById('senha_required').textContent = '';
+    
+    // Limpa todas as empresas selecionadas
+    document.querySelectorAll('input[name="empresas[]"]').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    // Marca as empresas do usuário
+    if (usuario.empresas && usuario.empresas.length > 0) {
+        usuario.empresas.forEach(function(emp) {
+            const checkbox = document.getElementById('empresa_' + emp.id);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+    } else if (usuario.empresa_id) {
+        // Fallback para compatibilidade com dados antigos
+        const checkbox = document.getElementById('empresa_' + usuario.empresa_id);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    }
     
     // Mostra foto atual se existir
     const fotoContainer = document.getElementById('foto_atual_container');
@@ -628,30 +742,64 @@ function editarUsuario(usuario) {
     document.getElementById('foto').value = '';
     
     // Carrega setores se empresa estiver definida
-    if (usuario.empresa_id) {
-        carregarSetores(usuario.empresa_id, usuario.setor_id || '');
+    // Usa a primeira empresa selecionada ou empresa_id para compatibilidade
+    let empresaParaSetores = null;
+    if (usuario.empresas && usuario.empresas.length > 0) {
+        empresaParaSetores = usuario.empresas[0].id;
+    } else if (usuario.empresa_id) {
+        empresaParaSetores = usuario.empresa_id;
+    }
+    
+    if (empresaParaSetores) {
+        carregarSetores(empresaParaSetores, usuario.setor_id || '');
     }
     
     // Atualiza validação de setor
     atualizarValidacaoSetor(usuario.role);
     
+    // Atualiza validação de empresas
+    atualizarValidacaoEmpresas(usuario.role);
+    
     const modal = new bootstrap.Modal(document.getElementById('kt_modal_usuario'));
     modal.show();
 }
 
-// Carrega setores quando empresa é selecionada
-document.getElementById('empresa_id').addEventListener('change', function() {
-    carregarSetores(this.value);
+// Carrega setores quando uma empresa é selecionada (usa a primeira empresa selecionada)
+function atualizarSetores() {
+    const empresasSelecionadas = Array.from(document.querySelectorAll('input[name="empresas[]"]:checked')).map(cb => cb.value);
+    if (empresasSelecionadas.length > 0) {
+        carregarSetores(empresasSelecionadas[0]);
+    } else {
+        document.getElementById('setor_id').innerHTML = '<option value="">Selecione uma empresa primeiro</option>';
+    }
+}
+
+// Adiciona listener para cada checkbox de empresa
+document.querySelectorAll('input[name="empresas[]"]').forEach(cb => {
+    cb.addEventListener('change', atualizarSetores);
 });
 
-// Validação: se não for ADMIN, empresa é obrigatória
-document.getElementById('role').addEventListener('change', function() {
-    const empresaSelect = document.getElementById('empresa_id');
-    if (this.value !== 'ADMIN' && this.value !== '') {
-        empresaSelect.required = true;
+function atualizarValidacaoEmpresas(role) {
+    const empresasRequired = document.getElementById('empresas_required');
+    const empresasCheckboxes = document.querySelectorAll('input[name="empresas[]"]');
+    
+    if (role !== 'ADMIN' && role !== '') {
+        empresasRequired.textContent = '*';
+        empresasCheckboxes.forEach(cb => {
+            cb.setAttribute('data-required', 'true');
+        });
     } else {
-        empresaSelect.required = false;
+        empresasRequired.textContent = '';
+        empresasCheckboxes.forEach(cb => {
+            cb.removeAttribute('data-required');
+        });
     }
+}
+
+// Validação: se não for ADMIN, pelo menos uma empresa é obrigatória
+document.getElementById('role').addEventListener('change', function() {
+    // Atualiza validação de empresas
+    atualizarValidacaoEmpresas(this.value);
     
     // Atualiza validação de setor
     atualizarValidacaoSetor(this.value);
@@ -666,6 +814,8 @@ function validarEmail(email) {
 // Validação do formulário
 document.getElementById('kt_modal_usuario_form').addEventListener('submit', function(e) {
     var email = document.getElementById('email').value;
+    var role = document.getElementById('role').value;
+    var empresasSelecionadas = Array.from(document.querySelectorAll('input[name="empresas[]"]:checked')).length;
     
     if (email && email.length > 0) {
         if (!validarEmail(email)) {
@@ -685,6 +835,25 @@ document.getElementById('kt_modal_usuario_form').addEventListener('submit', func
             }
             return false;
         }
+    }
+    
+    // Valida se pelo menos uma empresa foi selecionada (exceto ADMIN)
+    if (role !== 'ADMIN' && role !== '' && empresasSelecionadas === 0) {
+        e.preventDefault();
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                text: 'Selecione pelo menos uma empresa para este perfil!',
+                icon: 'error',
+                buttonsStyling: false,
+                confirmButtonText: 'Ok, entendi!',
+                customClass: {
+                    confirmButton: 'btn fw-bold btn-primary'
+                }
+            });
+        } else {
+            alert('Selecione pelo menos uma empresa para este perfil!');
+        }
+        return false;
     }
 });
 
@@ -737,8 +906,14 @@ document.getElementById('kt_modal_usuario').addEventListener('hidden.bs.modal', 
     document.getElementById('senha_required').textContent = '*';
     document.getElementById('setor_id').innerHTML = '<option value="">Selecione uma empresa primeiro</option>';
     document.getElementById('setor_required').textContent = '';
+    document.getElementById('empresas_required').textContent = '';
     document.getElementById('foto_atual_container').style.display = 'none';
     document.getElementById('foto_preview').style.display = 'none';
+    
+    // Desmarca todas as empresas
+    document.querySelectorAll('input[name="empresas[]"]').forEach(cb => {
+        cb.checked = false;
+    });
 });
 </script>
 

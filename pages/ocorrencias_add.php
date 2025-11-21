@@ -77,6 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tipo_ponto
         ]);
         
+        $ocorrencia_id = $pdo->lastInsertId();
+        
+        // Envia email de ocorrência se template estiver ativo
+        require_once __DIR__ . '/../includes/email_templates.php';
+        enviar_email_ocorrencia($ocorrencia_id);
+        
         redirect('colaborador_view.php?id=' . $colaborador_id, 'Ocorrência registrada com sucesso!');
     } catch (PDOException $e) {
         redirect('ocorrencias_add.php', 'Erro ao registrar: ' . $e->getMessage(), 'error');

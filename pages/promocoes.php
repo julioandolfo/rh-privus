@@ -44,6 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([$colaborador_id, $salario_anterior, $salario_novo, $motivo, $data_promocao, $usuario['id'], $observacoes]);
             
+            $promocao_id = $pdo->lastInsertId();
+            
+            // Envia email de promoção se template estiver ativo
+            require_once __DIR__ . '/../includes/email_templates.php';
+            enviar_email_nova_promocao($promocao_id);
+            
             redirect('promocoes.php', 'Promoção registrada com sucesso!');
         } catch (PDOException $e) {
             redirect('promocoes.php', 'Erro ao salvar: ' . $e->getMessage(), 'error');

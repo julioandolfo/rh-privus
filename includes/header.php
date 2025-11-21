@@ -36,6 +36,15 @@ $usuario = $_SESSION['usuario'];
     
     <link rel="shortcut icon" href="../assets/media/logos/favicon.ico" />
     
+    <!--begin::PWA Manifest-->
+    <link rel="manifest" href="../manifest.json">
+    <meta name="theme-color" content="#009ef7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RH Privus">
+    <link rel="apple-touch-icon" href="../assets/media/logos/favicon.png">
+    <!--end::PWA Manifest-->
+    
     <!--begin::Header CSS Fix-->
     <style>
         /* Garantir que o header tenha fundo sólido */

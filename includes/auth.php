@@ -25,9 +25,16 @@ function can_access_empresa($empresa_id) {
         return true;
     }
     
-    // RH pode acessar tudo da sua empresa
-    if ($user['role'] === 'RH' && $user['empresa_id'] == $empresa_id) {
-        return true;
+    // RH pode acessar empresas associadas a ele
+    if ($user['role'] === 'RH') {
+        // Verifica se tem empresas_ids na sessão (novo formato)
+        if (isset($user['empresas_ids']) && is_array($user['empresas_ids'])) {
+            return in_array($empresa_id, $user['empresas_ids']);
+        }
+        // Fallback para compatibilidade com formato antigo
+        if (isset($user['empresa_id']) && $user['empresa_id'] == $empresa_id) {
+            return true;
+        }
     }
     
     return false;
@@ -43,9 +50,23 @@ function can_access_setor($setor_id) {
     
     $user = $_SESSION['usuario'];
     
-    // ADMIN e RH podem acessar tudo
-    if ($user['role'] === 'ADMIN' || $user['role'] === 'RH') {
+    // ADMIN pode acessar tudo
+    if ($user['role'] === 'ADMIN') {
         return true;
+    }
+    
+    // RH pode acessar setores das empresas associadas a ele
+    if ($user['role'] === 'RH') {
+        $pdo = getDB();
+        // Busca empresa do setor
+        $stmt = $pdo->prepare("SELECT empresa_id FROM setores WHERE id = ?");
+        $stmt->execute([$setor_id]);
+        $setor = $stmt->fetch();
+        
+        if ($setor) {
+            return can_access_empresa($setor['empresa_id']);
+        }
+        return false;
     }
     
     // GESTOR só pode acessar seu setor
@@ -74,9 +95,26 @@ function can_access_colaborador($colaborador_id) {
     
     $user = $_SESSION['usuario'];
     
-    // ADMIN e RH podem acessar tudo
-    if ($user['role'] === 'ADMIN' || $user['role'] === 'RH') {
+    // ADMIN pode acessar tudo
+    if ($user['role'] === 'ADMIN') {
         return true;
+    }
+    
+    // RH pode acessar colaboradores das empresas associadas a ele
+    if ($user['role'] === 'RH') {
+        $pdo = getDB();
+        $stmt = $pdo->prepare("
+            SELECT c.empresa_id 
+            FROM colaboradores c
+            WHERE c.id = ?
+        ");
+        $stmt->execute([$colaborador_id]);
+        $colaborador = $stmt->fetch();
+        
+        if ($colaborador) {
+            return can_access_empresa($colaborador['empresa_id']);
+        }
+        return false;
     }
     
     // COLABORADOR só pode acessar seu próprio perfil

@@ -233,6 +233,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $pdo->prepare("UPDATE fechamentos_pagamento SET status = 'fechado' WHERE id = ?");
             $stmt->execute([$fechamento_id]);
+            
+            // Envia emails para cada colaborador do fechamento
+            require_once __DIR__ . '/../includes/email_templates.php';
+            $stmt_itens = $pdo->prepare("SELECT colaborador_id FROM fechamentos_pagamento_itens WHERE fechamento_id = ?");
+            $stmt_itens->execute([$fechamento_id]);
+            $itens = $stmt_itens->fetchAll();
+            
+            foreach ($itens as $item) {
+                enviar_email_fechamento_pagamento($fechamento_id, $item['colaborador_id']);
+            }
+            
             redirect('fechamento_pagamentos.php?view=' . $fechamento_id, 'Fechamento concluído!');
         } catch (PDOException $e) {
             redirect('fechamento_pagamentos.php', 'Erro ao fechar: ' . $e->getMessage(), 'error');
