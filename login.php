@@ -301,6 +301,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/js/onesignal-init.js"></script>
     <!--end::OneSignal SDK-->
     
+    <!--begin::PWA Install Prompt-->
+    <script src="assets/js/pwa-install-prompt.js"></script>
+    <!--end::PWA Install Prompt-->
+    
     <script>
         // Loading no botão de login
         document.addEventListener('DOMContentLoaded', function() {

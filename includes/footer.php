@@ -30,6 +30,10 @@
     <script src="../assets/js/onesignal-init.js"></script>
     <!--end::OneSignal SDK-->
     
+    <!--begin::PWA Install Prompt-->
+    <script src="../assets/js/pwa-install-prompt.js"></script>
+    <!--end::PWA Install Prompt-->
+    
     <!--begin::Custom Javascript-->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <!--end::Custom Javascript-->
