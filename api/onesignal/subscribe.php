@@ -30,7 +30,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 if (!isset($_SESSION['usuario'])) {
     http_response_code(401);
-    $response['message'] = 'Não autenticado';
+    $response['message'] = 'Não autenticado. Faça login primeiro.';
+    $response['debug'] = [
+        'session_id' => session_id(),
+        'has_session' => isset($_SESSION),
+        'session_data' => $_SESSION ?? []
+    ];
     echo json_encode($response);
     exit;
 }
@@ -105,11 +110,19 @@ try {
     $response['data'] = [
         'usuario_id' => $usuario_id,
         'colaborador_id' => $colaborador_id,
-        'player_id' => $player_id
+        'player_id' => $player_id,
+        'device_type' => $device_type
     ];
     
 } catch (Exception $e) {
+    http_response_code(500);
     $response['message'] = 'Erro ao registrar subscription: ' . $e->getMessage();
+    $response['error'] = [
+        'message' => $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ];
+    error_log('Erro ao registrar subscription OneSignal: ' . $e->getMessage());
 }
 
 echo json_encode($response);

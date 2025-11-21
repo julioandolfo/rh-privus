@@ -107,17 +107,37 @@ const OneSignalInit = {
                 
                 // Registra quando usuário se inscreve
                 OneSignal.on('subscriptionChange', function(isSubscribed) {
+                    console.log('📱 OneSignal subscriptionChange:', isSubscribed);
                     if (isSubscribed) {
-                        OneSignalInit.registerPlayer();
+                        console.log('✅ Usuário permitiu notificações, registrando player...');
+                        setTimeout(() => {
+                            OneSignalInit.registerPlayer();
+                        }, 1000); // Aguarda 1 segundo para garantir que player_id está disponível
                     }
                 });
                 
-                // Verifica se já está inscrito
-                OneSignal.isPushNotificationsEnabled(function(isEnabled) {
-                    if (isEnabled) {
-                        OneSignalInit.registerPlayer();
-                    }
-                });
+                // Verifica se já está inscrito (após alguns segundos)
+                setTimeout(() => {
+                    OneSignal.isPushNotificationsEnabled(function(isEnabled) {
+                        console.log('📱 OneSignal já está habilitado?', isEnabled);
+                        if (isEnabled) {
+                            console.log('✅ Notificações já habilitadas, registrando player...');
+                            OneSignalInit.registerPlayer();
+                        }
+                    });
+                }, 2000);
+                
+                // Tenta registrar após 3 segundos também (fallback)
+                setTimeout(() => {
+                    OneSignal.getUserId(function(userId) {
+                        if (userId) {
+                            console.log('📱 Player ID encontrado após timeout:', userId);
+                            OneSignalInit.registerPlayer();
+                        } else {
+                            console.warn('⚠️ Player ID ainda não disponível após 3 segundos');
+                        }
+                    });
+                }, 3000);
             });
             
             this.initialized = true;
@@ -132,8 +152,13 @@ const OneSignalInit = {
     // Registra player_id no servidor
     async registerPlayer() {
         try {
+            console.log('🔄 Tentando registrar player...');
+            
             const playerId = await this.getPlayerId();
+            console.log('📱 Player ID obtido:', playerId);
+            
             if (!playerId) {
+                console.warn('⚠️ Player ID não disponível ainda');
                 return;
             }
             
@@ -162,24 +187,38 @@ const OneSignalInit = {
                 subscribePath = basePathSubscribe + '/api/onesignal/subscribe.php';
             }
             
-            console.log('Registrando subscription em:', subscribePath);
+            console.log('📡 Registrando subscription em:', subscribePath);
+            console.log('📱 Player ID:', playerId);
             
             const response = await fetch(subscribePath, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                credentials: 'include',
+                credentials: 'include', // Importante: envia cookies de sessão
                 body: JSON.stringify({
-                    player_id: playerId
+                    player_id: playerId,
+                    user_agent: navigator.userAgent
                 })
             });
             
-            if (response.ok) {
-                console.log('✅ Player registrado no servidor');
+            console.log('📡 Resposta HTTP:', response.status, response.statusText);
+            
+            const responseData = await response.json();
+            console.log('📡 Dados da resposta:', responseData);
+            
+            if (response.ok && responseData.success) {
+                console.log('✅ Player registrado com sucesso no servidor!');
+                console.log('📊 Dados:', responseData.data);
+            } else {
+                console.error('❌ Erro ao registrar player:', responseData.message || 'Erro desconhecido');
+                if (response.status === 401) {
+                    console.error('⚠️ Não autenticado! Faça login primeiro.');
+                }
             }
         } catch (error) {
-            console.error('Erro ao registrar player:', error);
+            console.error('❌ Erro ao registrar player:', error);
+            console.error('Stack:', error.stack);
         }
     },
     
@@ -187,12 +226,20 @@ const OneSignalInit = {
     async getPlayerId() {
         return new Promise((resolve) => {
             if (typeof OneSignal === 'undefined') {
+                console.warn('⚠️ OneSignal não está definido');
                 resolve(null);
                 return;
             }
             
-            OneSignal.getUserId(function(userId) {
-                resolve(userId);
+            OneSignal.push(function() {
+                OneSignal.getUserId(function(userId) {
+                    if (userId) {
+                        console.log('✅ Player ID obtido:', userId);
+                    } else {
+                        console.warn('⚠️ Player ID ainda não disponível');
+                    }
+                    resolve(userId);
+                });
             });
         });
     },
