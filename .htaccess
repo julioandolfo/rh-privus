@@ -1,0 +1,49 @@
+# Configuração Apache para RH Privus
+
+# Ativa o RewriteEngine
+RewriteEngine On
+
+# Redireciona /rh/ para /rh/index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} ^/rh/?$
+RewriteRule ^$ index.php [L]
+
+# Permite acesso direto a arquivos PHP
+<FilesMatch "\.php$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Configuração de segurança
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Configuração de tipos MIME
+AddType application/javascript .js
+AddType text/css .css
+AddType application/json .json
+
+# Configuração de cache para assets estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# Previne listagem de diretórios
+Options -Indexes
+
+# Configuração de charset
+AddDefaultCharset UTF-8
+
+# Configuração de erro personalizado (opcional)
+# ErrorDocument 404 /rh/404.php
+# ErrorDocument 500 /rh/500.php
+
