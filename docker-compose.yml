@@ -1,0 +1,53 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-rh_privus}
+      DB_USER: ${DB_USER:-rh_privus}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      # Admin criado no primeiro boot (só se não houver usuários)
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@privus.com.br}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      # SMTP (opcional)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-tls}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-RH Privus}
+    # No Coolify, defina o domínio na interface (ele cuida do proxy + HTTPS).
+    # A porta 80 do container é roteada automaticamente pelo proxy do Coolify.
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - uploads_data:/var/www/html/uploads
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-rh_privus}
+      MARIADB_USER: ${DB_USER:-rh_privus}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-changeme}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme_root}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
+  uploads_data:

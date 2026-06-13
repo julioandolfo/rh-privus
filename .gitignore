@@ -23,3 +23,6 @@ logs/
 # Configurações locais
 config/db.local.php
 
+# Variáveis de ambiente (Docker/Coolify) - contém segredos
+.env
+

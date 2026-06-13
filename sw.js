@@ -4,7 +4,7 @@ const CACHE_NAME = 'rh-privus-v2'; // Atualizado para forçar atualização
 
 // Detecta BASE_PATH automaticamente
 // Funciona tanto em /rh-privus/ (localhost) quanto /rh/ (produção)
-let BASE_PATH = '/rh'; // Padrão para produção
+let BASE_PATH = ''; // Padrao: raiz do dominio
 
 try {
     const swPath = self.location.pathname;
@@ -15,7 +15,7 @@ try {
     }
 } catch (e) {
     // Fallback para /rh se não conseguir detectar
-    BASE_PATH = '/rh';
+    BASE_PATH = '';
 }
 
 const urlsToCache = [

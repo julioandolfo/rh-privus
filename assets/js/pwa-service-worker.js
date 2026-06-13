@@ -24,7 +24,7 @@
             if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('local')) {
                 basePath = '/rh-privus';
             } else {
-                basePath = '/rh';
+                basePath = ''; // raiz do dominio
             }
         }
         

@@ -32,7 +32,7 @@ $colaborador_id = $input['colaborador_id'] ?? null;
 $titulo = $input['titulo'] ?? 'Notificação';
 $mensagem = $input['mensagem'] ?? '';
 // Detecta base path automaticamente
-$basePath = '/rh'; // Padrão produção
+$basePath = ''; // Padrao: raiz do dominio
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 if (strpos($requestUri, '/rh-privus') !== false) {
     $basePath = '/rh-privus';

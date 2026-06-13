@@ -1,0 +1,10 @@
+.git
+.gitignore
+vendor
+composer.lock
+*.rar
+*.log
+.env
+.idea
+.vscode
+node_modules

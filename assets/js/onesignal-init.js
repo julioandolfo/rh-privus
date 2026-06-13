@@ -30,7 +30,7 @@ const OneSignalInit = {
             if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('local')) {
                 basePath = '/rh-privus';
             } else {
-                basePath = '/rh';
+                basePath = ''; // raiz do dominio (deploy sem subpasta)
             }
         }
         
@@ -74,7 +74,7 @@ const OneSignalInit = {
             // Detecta base path para Service Worker
             const pathForSW = window.location.pathname;
             const hostname = window.location.hostname;
-            let basePathForSW = '/rh'; // Padrão produção
+            let basePathForSW = ''; // Padrao: raiz do dominio
             
             // Detecta pelo caminho primeiro
             if (pathForSW.includes('/rh-privus/') || pathForSW.startsWith('/rh-privus')) {
@@ -207,7 +207,7 @@ const OneSignalInit = {
             // Detecta base path para subscribe
             const path = window.location.pathname;
             let subscribePath;
-            let basePathSubscribe = '/rh'; // Padrão produção
+            let basePathSubscribe = ''; // Padrao: raiz do dominio
             
             // Detecta o caminho base
             if (path.includes('/rh-privus/') || path.startsWith('/rh-privus')) {

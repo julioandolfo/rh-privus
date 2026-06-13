@@ -7,7 +7,7 @@
 header('Content-Type: application/json');
 
 // Detecta o caminho base automaticamente
-$basePath = '/rh'; // Padrão para produção
+$basePath = ''; // Padrao: raiz do dominio
 
 // Tenta detectar pelo REQUEST_URI
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
