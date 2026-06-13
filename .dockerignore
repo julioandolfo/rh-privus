@@ -8,3 +8,6 @@ composer.lock
 .idea
 .vscode
 node_modules
+# Dumps de migração: usados pelo serviço de banco (bind mount), não pela imagem da app
+database/initdb/*.sql
+database/initdb/*.sql.gz

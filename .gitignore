@@ -26,3 +26,7 @@ config/db.local.php
 # Variáveis de ambiente (Docker/Coolify) - contém segredos
 .env
 
+
+# Dumps de banco (contem segredos/PII) - nunca commitar
+database/initdb/*.sql
+database/initdb/*.sql.gz
