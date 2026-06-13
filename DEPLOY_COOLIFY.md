@@ -53,16 +53,20 @@ ajustados para usar a raiz por padrão.
 
 O deploy já cria o banco e as tabelas sozinho. Para trazer os **dados existentes**:
 
-1. Gere um **dump** do banco atual (veja `database/initdb/README.md` para os comandos
-   de `mysqldump` ou export pelo phpMyAdmin).
-2. Salve o arquivo como `dump.sql` dentro de **`database/initdb/`** e faça commit/push.
-3. Faça o deploy no Coolify. Na **primeira** subida, o MariaDB importa o dump
-   automaticamente; o instalador detecta que o banco já tem dados e **não** recria
-   nada (seus dados ficam intactos, sem admin duplicado).
+1. Gere um **dump** do banco atual (comandos em `database/initdb/README.md`).
+2. **NÃO comite o dump** (ele contém chaves de API, senha SMTP e dados pessoais dos
+   colaboradores — por isso `database/initdb/*.sql` está no `.gitignore`). Em vez disso:
+   - **Opção A (automática):** coloque o `dump.sql` em `database/initdb/` **no servidor
+     do Coolify** (via SFTP / gerenciador de arquivos), fora do git. Na primeira subida,
+     com o volume vazio, o MariaDB importa sozinho.
+   - **Opção B (manual):** após o deploy, importe via terminal do banco:
+     `docker exec -i <container_db> mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE" < dump.sql`
+3. O instalador detecta que o banco já tem dados e **não** recria nada (seus dados
+   ficam intactos, sem admin duplicado).
 
-> A importação ocorre só com o volume do banco vazio. Se já existir um deploy antigo,
-> apague o volume do banco no Coolify antes para reimportar. Remova o `dump.sql` do
-> repositório após concluir a migração.
+> A importação automática só ocorre com o volume do banco vazio. Para reimportar,
+> apague o volume do banco no Coolify. **Rotacione as chaves de API** que estiverem no
+> dump caso o arquivo tenha sido exposto.
 
 ## Rodando localmente (teste antes do Coolify)
 
