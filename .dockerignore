@@ -8,6 +8,5 @@ composer.lock
 .idea
 .vscode
 node_modules
-# Dumps de migração: usados pelo serviço de banco (bind mount), não pela imagem da app
-database/initdb/*.sql
+# Dumps crus não vão para a imagem; o dump.sql sanitizado SIM (importado no entrypoint)
 database/initdb/*.sql.gz

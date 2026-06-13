@@ -23,7 +23,30 @@ until php -r '
     sleep 2
 done
 
-echo "[entrypoint] Banco disponível. Rodando instalador/migração ..."
+echo "[entrypoint] Banco disponível."
+
+DB_NAME="${DB_NAME:-rh_privus}"
+DB_USER="${DB_USER:-root}"
+DUMP_FILE="/var/www/html/database/initdb/dump.sql"
+
+# Migração: se o banco está vazio (sem a tabela 'usuarios') e existe um dump,
+# importa o dump com o cliente mariadb (robusto para dumps grandes do phpMyAdmin).
+if [ -f "$DUMP_FILE" ]; then
+    HAS_USERS=$(mariadb -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" -N -B \
+        -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME' AND table_name='usuarios';" 2>/dev/null || echo "erro")
+    if [ "$HAS_USERS" = "0" ]; then
+        echo "[entrypoint] Banco vazio + dump encontrado. Importando dump.sql ..."
+        if mariadb -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" < "$DUMP_FILE"; then
+            echo "[entrypoint] Dump importado com sucesso."
+        else
+            echo "[entrypoint] ERRO ao importar o dump. Verifique o arquivo."
+        fi
+    else
+        echo "[entrypoint] Banco já possui dados (HAS_USERS=$HAS_USERS). Dump não reimportado."
+    fi
+fi
+
+echo "[entrypoint] Rodando instalador/migração (idempotente) ..."
 php /var/www/html/docker/install_cli.php
 
 # Garante permissões de escrita para uploads
