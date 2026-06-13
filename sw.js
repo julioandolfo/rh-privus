@@ -1,6 +1,6 @@
 // Service Worker - RH Privus PWA
 // OneSignal SDK será carregado automaticamente via OneSignalSDKWorker.js
-const CACHE_NAME = 'rh-privus-v2'; // Atualizado para forçar atualização
+const CACHE_NAME = 'rh-privus-v3'; // Atualizado para forçar atualização
 
 // Detecta BASE_PATH automaticamente
 // Funciona tanto em /rh-privus/ (localhost) quanto /rh/ (produção)
@@ -18,10 +18,9 @@ try {
     BASE_PATH = '';
 }
 
+// Apenas assets ESTÁTICOS no precache. Nunca páginas PHP/navegação
+// (são dinâmicas/autenticadas e podem cachear respostas redirecionadas).
 const urlsToCache = [
-  BASE_PATH + '/',
-  BASE_PATH + '/login.php',
-  BASE_PATH + '/pages/dashboard.php',
   BASE_PATH + '/assets/css/style.bundle.css',
   BASE_PATH + '/assets/js/scripts.bundle.js',
   BASE_PATH + '/assets/plugins/global/plugins.bundle.css',
@@ -70,6 +69,13 @@ self.addEventListener('fetch', (event) => {
   // Ignora requisições POST, PUT, DELETE, PATCH (não podem ser cacheadas)
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return fetch(request);
+  }
+
+  // Nunca intercepta NAVEGAÇÕES nem páginas PHP (conteúdo dinâmico/autenticado).
+  // Deixa o navegador buscar direto da rede — evita servir respostas
+  // redirecionadas do cache (causa de ERR_FAILED no dashboard).
+  if (request.mode === 'navigate' || url.pathname.endsWith('.php') || url.pathname === '/' || url.pathname === BASE_PATH + '/') {
+    return; // sem respondWith = comportamento padrão (rede)
   }
   
   // Ignora requisições de API e OneSignal (não devem ser cacheadas)
