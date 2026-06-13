@@ -4,8 +4,14 @@
  *
  * Idempotente: pode rodar a cada inicialização do container.
  *  - Cria o banco caso não exista
- *  - Aplica o schema (CREATE TABLE IF NOT EXISTS ...)
- *  - Cria o usuário administrador padrão caso ainda não exista nenhum usuário
+ *  - Se o banco estiver VAZIO (tabela `usuarios` inexistente), aplica o schema
+ *    (CREATE TABLE + dados-semente) e cria o usuário administrador padrão.
+ *  - Se o banco JÁ tiver dados (ex.: importados de um dump de migração),
+ *    não recria nada e não duplica os dados-semente.
+ *
+ * Observação: a importação de um dump completo do banco antigo é feita
+ * automaticamente pelo serviço de banco (MariaDB) via /docker-entrypoint-initdb.d
+ * na primeira inicialização do volume. Veja database/initdb/README.md.
  *
  * Variáveis de ambiente:
  *  DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
@@ -35,11 +41,25 @@ try {
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
 
-    // Cria o banco se necessário
+    // Cria o banco se necessário e seleciona
     $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     $pdo->exec("USE `{$dbname}`");
 
-    // Aplica o schema (fonte única, compartilhada com install.php)
+    // Verifica se o banco já está populado (tabela `usuarios` existe?)
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) FROM information_schema.tables
+         WHERE table_schema = ? AND table_name = 'usuarios'"
+    );
+    $stmt->execute([$dbname]);
+    $jaInstalado = (int) $stmt->fetchColumn() > 0;
+
+    if ($jaInstalado) {
+        fwrite(STDOUT, "[install] Banco já possui dados (tabela 'usuarios' existe). Nada a fazer.\n");
+        exit(0);
+    }
+
+    // Banco vazio: aplica o schema (fonte única, compartilhada com install.php)
+    fwrite(STDOUT, "[install] Banco vazio. Aplicando schema ...\n");
     $sql = require __DIR__ . '/../database/schema.php';
     $pdo->exec($sql);
     fwrite(STDOUT, "[install] Schema aplicado.\n");
@@ -53,8 +73,6 @@ try {
         );
         $stmt->execute([$adminName, $adminEmail, $hash]);
         fwrite(STDOUT, "[install] Usuário admin criado: {$adminEmail}\n");
-    } else {
-        fwrite(STDOUT, "[install] Usuários já existem ({$count}). Admin não recriado.\n");
     }
 
     fwrite(STDOUT, "[install] Concluído com sucesso.\n");

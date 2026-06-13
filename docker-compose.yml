@@ -42,6 +42,9 @@ services:
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme_root}
     volumes:
       - db_data:/var/lib/mysql
+      # Qualquer .sql/.sql.gz aqui é importado automaticamente na PRIMEIRA
+      # inicialização do volume (use para migrar os dados do sistema antigo).
+      - ./database/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s

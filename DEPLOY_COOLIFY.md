@@ -49,6 +49,21 @@ ajustados para usar a raiz por padrão.
 5. **Primeiro login**: acesse o domínio e entre com o `ADMIN_EMAIL` /
    `ADMIN_PASSWORD` definidos. **Troque a senha do admin** em seguida.
 
+## Migrar os dados do sistema atual
+
+O deploy já cria o banco e as tabelas sozinho. Para trazer os **dados existentes**:
+
+1. Gere um **dump** do banco atual (veja `database/initdb/README.md` para os comandos
+   de `mysqldump` ou export pelo phpMyAdmin).
+2. Salve o arquivo como `dump.sql` dentro de **`database/initdb/`** e faça commit/push.
+3. Faça o deploy no Coolify. Na **primeira** subida, o MariaDB importa o dump
+   automaticamente; o instalador detecta que o banco já tem dados e **não** recria
+   nada (seus dados ficam intactos, sem admin duplicado).
+
+> A importação ocorre só com o volume do banco vazio. Se já existir um deploy antigo,
+> apague o volume do banco no Coolify antes para reimportar. Remova o `dump.sql` do
+> repositório após concluir a migração.
+
 ## Rodando localmente (teste antes do Coolify)
 
 ```bash
