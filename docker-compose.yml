@@ -26,9 +26,9 @@ services:
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-RH Privus}
     # No Coolify, defina o domínio na interface (ele cuida do proxy + HTTPS).
-    # A porta 80 do container é roteada automaticamente pelo proxy do Coolify.
-    ports:
-      - "${APP_PORT:-8080}:80"
+    # NÃO publicar portas no host (Coolify roteia via proxy interno). Apenas expor a 80.
+    expose:
+      - "80"
     volumes:
       - uploads_data:/var/www/html/uploads
 
