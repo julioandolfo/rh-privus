@@ -1,34 +1,29 @@
 # Migração de dados (importação)
 
-Coloque aqui um **dump SQL do banco atual** (ex.: `dump.sql`). Todo arquivo
-`.sql` / `.sql.gz` nesta pasta é importado **automaticamente** pelo MariaDB na
-**primeira inicialização do volume** (quando o banco está vazio). Depois disso,
-o `docker/install_cli.php` detecta que o banco já tem dados e **não** recria nada.
+Todo arquivo `.sql` / `.sql.gz` nesta pasta é importado **automaticamente** pelo
+MariaDB na **primeira inicialização do volume** (quando o banco está vazio). Depois
+disso, o `docker/install_cli.php` detecta que o banco já tem dados e **não** recria nada.
 
-## ⚠️ NÃO comite o dump no git
+## `dump.sql` (versão SANITIZADA — pode ir ao git)
 
-O dump contém **segredos** (chaves de API: OpenAI, Slack, Evolution/WhatsApp,
-Autentique, OneSignal, VAPID; senha SMTP) e **dados pessoais** dos colaboradores
-(incl. hashes de senha). Por isso `database/initdb/*.sql` está no `.gitignore` e
-**não deve** ser enviado ao repositório.
+O `dump.sql` versionado aqui é a exportação completa do sistema **com os dados
+preservados** (colaboradores, configs, etc.), porém com os **segredos substituídos
+por placeholders** (`SANITIZADO_...`): chaves OpenAI, Evolution/WhatsApp, Autentique,
+OneSignal e a senha SMTP. Os hashes de senha dos usuários foram mantidos.
 
-## Como fazer a importação com segurança
+> Após o deploy, **recadastre as chaves reais** nas telas de integração do sistema
+> (OpenAI, WhatsApp/Evolution, Autentique, OneSignal) e a senha SMTP. Use **chaves
+> novas** (as antigas devem ser rotacionadas por segurança).
 
-### Opção A — colocar o dump no servidor (importação automática)
-1. Gere o dump (veja comandos abaixo).
-2. Envie o arquivo `dump.sql` para o servidor do Coolify, **dentro da pasta do
-   projeto** em `database/initdb/` (via SFTP, ou pelo gerenciador de arquivos do
-   Coolify). Não passa pelo git.
-3. Faça o primeiro deploy com o volume do banco vazio → o MariaDB importa sozinho.
+`database/initdb/*.sql` continua no `.gitignore` (dumps crus, com segredos, **não**
+devem ser commitados). Apenas `dump.sql`, por ser a versão sanitizada, é exceção.
 
-### Opção B — importar manualmente após o deploy
-1. Faça o deploy normal (o banco sobe vazio / só com o schema base).
-2. Abra o **terminal** do serviço de banco no Coolify (ou via SSH no host) e rode:
-   ```bash
-   # com o dump.sql disponível no host:
-   docker exec -i <container_do_db> \
-     mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE" < dump.sql
-   ```
+## Importação manual (alternativa)
+
+```bash
+docker exec -i <container_do_db> \
+  mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE" < dump.sql
+```
 
 ## Como gerar o dump do sistema antigo
 

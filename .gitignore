@@ -27,6 +27,8 @@ config/db.local.php
 .env
 
 
-# Dumps de banco (contem segredos/PII) - nunca commitar
+# Dumps de banco crus (contem segredos) - nunca commitar
 database/initdb/*.sql
 database/initdb/*.sql.gz
+# Exceção: dump.sql é a versão SANITIZADA (sem chaves de API) e pode ser commitado
+!database/initdb/dump.sql
